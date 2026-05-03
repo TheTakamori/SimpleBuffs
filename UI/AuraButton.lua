@@ -46,6 +46,41 @@ local function set_cooldown(button, entry, appearance)
 	end
 end
 
+local function is_unlocked_standalone_icon(button)
+	if ns.DB().locked then
+		return false
+	end
+
+	local current = button
+	while current do
+		if current.mode == ns.DISPLAY_MODE.STANDALONE or current.containerKey then
+			return true
+		end
+		current = current.GetParent and current:GetParent()
+	end
+	return false
+end
+
+local function add_standalone_move_tooltip_line(button)
+	if not is_unlocked_standalone_icon(button) or not GameTooltip.AddLine then
+		return
+	end
+
+	GameTooltip:AddLine(
+		ns.TEXT.TOOLTIP_DIVIDER,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_R,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_G,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_B
+	)
+	GameTooltip:AddLine(
+		ns.TEXT.STANDALONE_MOVE_TOOLTIP,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_R,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_G,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_B,
+		true
+	)
+end
+
 local function on_enter(self)
 	local entry = self.entry
 	if not GameTooltip or not entry then
@@ -64,6 +99,7 @@ local function on_enter(self)
 			ns.AURA_BUTTON.TOOLTIP_COLOR_B
 		)
 	end
+	add_standalone_move_tooltip_line(self)
 	GameTooltip:Show()
 end
 

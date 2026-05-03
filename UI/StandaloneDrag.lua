@@ -56,9 +56,38 @@ function ns.StopStandaloneDrag(frame)
 	movableFrame.simpleBuffsPositionKey = nil
 end
 
+local function show_move_tooltip(self)
+	if ns.DB().locked or not GameTooltip then
+		return
+	end
+
+	GameTooltip:SetOwner(self, ns.UI.ANCHOR_RIGHT)
+	GameTooltip:ClearLines()
+	GameTooltip:AddLine(
+		ns.TEXT.STANDALONE_MOVE_TOOLTIP,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_R,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_G,
+		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_B,
+		true
+	)
+	GameTooltip:Show()
+end
+
+local function hide_move_tooltip(self)
+	if not GameTooltip then
+		return
+	end
+	if GameTooltip.IsOwned and not GameTooltip:IsOwned(self) then
+		return
+	end
+	GameTooltip:Hide()
+end
+
 function ns.ApplyStandaloneDrag(frame)
 	frame:SetMovable(true)
 	frame:RegisterForDrag(ns.UI.LEFT_BUTTON)
+	frame:SetScript(ns.UI.ON_ENTER, show_move_tooltip)
+	frame:SetScript(ns.UI.ON_LEAVE, hide_move_tooltip)
 	frame:SetScript(ns.UI.ON_DRAG_START, function(self)
 		ns.StartStandaloneDrag(self)
 	end)

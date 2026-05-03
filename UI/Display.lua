@@ -46,13 +46,8 @@ local function create_display(unit, mode)
 	frame:SetSize(ns.DISPLAY_FRAME.WIDTH, ns.DISPLAY_FRAME.HEIGHT)
 	frame:SetFrameStrata(mode == MODE_STANDALONE and ns.UI.FRAME_STRATA_MEDIUM or ns.UI.FRAME_STRATA_LOW)
 
-	frame.background = frame:CreateTexture(nil, ns.UI.BACKGROUND)
-	frame.background:SetAllPoints()
 	if mode == MODE_STANDALONE then
-		frame.background:SetColorTexture(ns.DISPLAY_FRAME.STANDALONE_BG_R, ns.DISPLAY_FRAME.STANDALONE_BG_G, ns.DISPLAY_FRAME.STANDALONE_BG_B, ns.DISPLAY_FRAME.STANDALONE_BG_A)
 		ns.ApplyStandaloneDrag(frame)
-	else
-		frame.background:SetColorTexture(ns.DISPLAY_FRAME.ATTACHED_BG_R, ns.DISPLAY_FRAME.ATTACHED_BG_G, ns.DISPLAY_FRAME.ATTACHED_BG_B, ns.DISPLAY_FRAME.ATTACHED_BG_A)
 	end
 
 	return frame
@@ -73,9 +68,6 @@ local function get_or_create_container(containerKey)
 	frame.unit = containerKey
 	frame:SetSize(ns.DISPLAY_FRAME.CONTAINER_WIDTH, ns.DISPLAY_FRAME.CONTAINER_HEIGHT)
 	frame:SetFrameStrata(ns.UI.FRAME_STRATA_MEDIUM)
-	frame.background = frame:CreateTexture(nil, ns.UI.BACKGROUND)
-	frame.background:SetAllPoints()
-	frame.background:SetColorTexture(ns.DISPLAY_FRAME.CONTAINER_BG_R, ns.DISPLAY_FRAME.CONTAINER_BG_G, ns.DISPLAY_FRAME.CONTAINER_BG_B, ns.DISPLAY_FRAME.CONTAINER_BG_A)
 	ns.ApplyStandaloneDrag(frame)
 	runtime.containers[containerKey] = frame
 	return frame

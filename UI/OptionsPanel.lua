@@ -46,6 +46,26 @@ local function confirm_reset_defaults(frame)
 	frame:RefreshFromDB()
 end
 
+local function display_mode_uses_standalone()
+	local mode = ns.GetDisplayMode()
+	return mode == ns.DISPLAY_MODE.STANDALONE or mode == ns.DISPLAY_MODE.BOTH
+end
+
+local function create_standalone_move_help(parent, relativeTo)
+	local label = parent:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
+	label:SetPoint(ns.UI.ANCHOR_BOTTOMLEFT, relativeTo, ns.UI.ANCHOR_TOPLEFT, ns.OPTIONS_LAYOUT.MODE_HELP_OFFSET_X, ns.OPTIONS_LAYOUT.MODE_HELP_PADDING_Y)
+	label:SetWidth(ns.OPTIONS_LAYOUT.MODE_HELP_WIDTH)
+	label:SetText(ns.TEXT.OPTIONS_STANDALONE_MOVE_HELP)
+	label.RefreshFromDB = function(self)
+		if display_mode_uses_standalone() then
+			self:Show()
+		else
+			self:Hide()
+		end
+	end
+	return label
+end
+
 local function build_panel()
 	local frame = CreateFrame(ns.UI.FRAME, ns.FRAME_NAME.OPTIONS_PANEL, UIParent)
 	frame.name = ns.TEXT.OPTIONS_TITLE
@@ -93,7 +113,9 @@ local function build_panel()
 	local showCountsY = showSwipeY - ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y
 
 	ns.CreateOptionsLabelAt(content, ns.TEXT.OPTIONS_DISPLAY, ns.OPTIONS_LAYOUT.RIGHT_COLUMN_X, displayY)
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, ns.TEXT.OPTIONS_MODE, displayY - ns.OPTIONS_LAYOUT.CYCLE_MODE_OFFSET_Y, ns.DISPLAY_MODE_ORDER, ns.GetDisplayMode, ns.SetDisplayMode, ns.DISPLAY_MODE_LABEL, ns.OPTIONS_LAYOUT.RIGHT_COLUMN_X + ns.OPTIONS_LAYOUT.RIGHT_COLUMN_INSET, ns.TEXT.OPTIONS_TOOLTIP_MODE))
+	local modeButton = ns.CreateOptionsCycle(content, ns.TEXT.OPTIONS_MODE, displayY - ns.OPTIONS_LAYOUT.CYCLE_MODE_OFFSET_Y, ns.DISPLAY_MODE_ORDER, ns.GetDisplayMode, ns.SetDisplayMode, ns.DISPLAY_MODE_LABEL, ns.OPTIONS_LAYOUT.RIGHT_COLUMN_X + ns.OPTIONS_LAYOUT.RIGHT_COLUMN_INSET, ns.TEXT.OPTIONS_TOOLTIP_MODE)
+	ns.RegisterOptionsChild(content, modeButton)
+	ns.RegisterOptionsChild(content, create_standalone_move_help(content, modeButton))
 	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, ns.TEXT.OPTIONS_LAYOUT, displayY - ns.OPTIONS_LAYOUT.CYCLE_LAYOUT_OFFSET_Y, ns.LAYOUT_ORDER, function()
 		return ns.GetAppearance().layout
 	end, function(value)
