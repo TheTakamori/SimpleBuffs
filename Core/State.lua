@@ -4,8 +4,8 @@ local ns = SimpleBuffs
 local function copy_table(source, target)
 	target = target or {}
 	for key, value in pairs(source or {}) do
-		if type(value) == "table" then
-			target[key] = copy_table(value, type(target[key]) == "table" and target[key] or {})
+		if type(value) == ns.LUA_TYPE.TABLE then
+			target[key] = copy_table(value, type(target[key]) == ns.LUA_TYPE.TABLE and target[key] or {})
 		elseif target[key] == nil then
 			target[key] = value
 		end
@@ -37,8 +37,8 @@ local function clamp(value, minValue, maxValue, fallback)
 end
 
 local function sanitize_position(saved, fallback)
-	saved.point = type(saved.point) == "string" and saved.point or fallback.point
-	saved.relativePoint = type(saved.relativePoint) == "string" and saved.relativePoint or fallback.relativePoint
+	saved.point = type(saved.point) == ns.LUA_TYPE.STRING and saved.point or fallback.point
+	saved.relativePoint = type(saved.relativePoint) == ns.LUA_TYPE.STRING and saved.relativePoint or fallback.relativePoint
 	saved.x = tonumber(saved.x) or fallback.x
 	saved.y = tonumber(saved.y) or fallback.y
 	return saved
@@ -51,12 +51,12 @@ end
 
 local function sanitize_db(db)
 	db.version = ns.DB_VERSION
-	db.appearance = type(db.appearance) == "table" and db.appearance or {}
-	db.units = type(db.units) == "table" and db.units or {}
-	db.attached = type(db.attached) == "table" and db.attached or {}
-	db.standalone = type(db.standalone) == "table" and db.standalone or {}
-	db.minimap = type(db.minimap) == "table" and db.minimap or {}
-	db.minimap.angle = clamp(db.minimap.angle, 0, 360, ns.DEFAULTS.minimap.angle)
+	db.appearance = type(db.appearance) == ns.LUA_TYPE.TABLE and db.appearance or {}
+	db.units = type(db.units) == ns.LUA_TYPE.TABLE and db.units or {}
+	db.attached = type(db.attached) == ns.LUA_TYPE.TABLE and db.attached or {}
+	db.standalone = type(db.standalone) == ns.LUA_TYPE.TABLE and db.standalone or {}
+	db.minimap = type(db.minimap) == ns.LUA_TYPE.TABLE and db.minimap or {}
+	db.minimap.angle = clamp(db.minimap.angle, ns.NUMBER.ZERO, ns.MINIMAP_MATH.FULL_CIRCLE_DEGREES, ns.DEFAULTS.minimap.angle)
 	db.minimap.hide = db.minimap.hide == true
 	if not contains(ns.DISPLAY_MODE_ORDER, db.displayMode) then
 		db.displayMode = ns.DEFAULTS.displayMode
@@ -84,17 +84,17 @@ local function sanitize_db(db)
 	appearance.showTitles = appearance.showTitles ~= false
 
 	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
-		db.units[groupKey] = type(db.units[groupKey]) == "table" and db.units[groupKey] or {}
+		db.units[groupKey] = type(db.units[groupKey]) == ns.LUA_TYPE.TABLE and db.units[groupKey] or {}
 		sanitize_unit_options(db.units[groupKey])
 	end
 
 	for unit, fallback in pairs(ns.ANCHOR_DEFAULTS) do
-		db.attached[unit] = type(db.attached[unit]) == "table" and db.attached[unit] or {}
+		db.attached[unit] = type(db.attached[unit]) == ns.LUA_TYPE.TABLE and db.attached[unit] or {}
 		sanitize_position(db.attached[unit], fallback)
 	end
 
 	for containerKey, fallback in pairs(ns.STANDALONE_DEFAULTS) do
-		db.standalone[containerKey] = type(db.standalone[containerKey]) == "table" and db.standalone[containerKey] or {}
+		db.standalone[containerKey] = type(db.standalone[containerKey]) == ns.LUA_TYPE.TABLE and db.standalone[containerKey] or {}
 		sanitize_position(db.standalone[containerKey], fallback)
 	end
 end
@@ -155,29 +155,29 @@ end
 
 function ns.SetAppearanceValue(key, value)
 	local appearance = ns.GetAppearance()
-	if key == "iconSize" then
+	if key == ns.DB_KEY.ICON_SIZE then
 		appearance.iconSize = math.floor(clamp(value, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, ns.DEFAULTS.appearance.iconSize))
-	elseif key == "spacing" then
+	elseif key == ns.DB_KEY.SPACING then
 		appearance.spacing = math.floor(clamp(value, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.appearance.spacing))
-	elseif key == "rowSpacing" then
+	elseif key == ns.DB_KEY.ROW_SPACING then
 		appearance.rowSpacing = math.floor(clamp(value, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.appearance.rowSpacing))
-	elseif key == "maxAuras" then
+	elseif key == ns.DB_KEY.MAX_AURAS then
 		appearance.maxAuras = math.floor(clamp(value, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, ns.DEFAULTS.appearance.maxAuras))
-	elseif key == "scale" then
+	elseif key == ns.DB_KEY.SCALE then
 		appearance.scale = clamp(value, ns.LIMITS.SCALE_MIN, ns.LIMITS.SCALE_MAX, ns.DEFAULTS.appearance.scale)
-	elseif key == "layout" and contains(ns.LAYOUT_ORDER, value) then
+	elseif key == ns.DB_KEY.LAYOUT and contains(ns.LAYOUT_ORDER, value) then
 		appearance.layout = value
-	elseif key == "sortRule" and contains(ns.SORT_RULE_ORDER, value) then
+	elseif key == ns.DB_KEY.SORT_RULE and contains(ns.SORT_RULE_ORDER, value) then
 		appearance.sortRule = value
-	elseif key == "filterMode" and contains(ns.FILTER_MODE_ORDER, value) then
+	elseif key == ns.DB_KEY.FILTER_MODE and contains(ns.FILTER_MODE_ORDER, value) then
 		appearance.filterMode = value
-	elseif key == "showCountdown" then
+	elseif key == ns.DB_KEY.SHOW_COUNTDOWN then
 		appearance.showCountdown = value == true
-	elseif key == "showSwipe" then
+	elseif key == ns.DB_KEY.SHOW_SWIPE then
 		appearance.showSwipe = value == true
-	elseif key == "showCounts" then
+	elseif key == ns.DB_KEY.SHOW_COUNTS then
 		appearance.showCounts = value == true
-	elseif key == "showTitles" then
+	elseif key == ns.DB_KEY.SHOW_TITLES then
 		appearance.showTitles = value == true
 	else
 		return false
@@ -196,6 +196,28 @@ end
 
 function ns.SetUnitAuraEnabled(unit, auraType, enabled)
 	return ns.SetUnitGroupAuraEnabled(ns.GetUnitGroup(unit) or unit, auraType, enabled)
+end
+
+function ns.SetAllUnitAurasEnabled(enabled)
+	local value = enabled == true
+	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
+		local options = ns.GetUnitGroupOptions(groupKey)
+		if options then
+			options.buff = value
+			options.debuff = value
+		end
+	end
+	return value
+end
+
+function ns.AreAllUnitAurasEnabled()
+	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
+		local options = ns.GetUnitGroupOptions(groupKey)
+		if not options or not options.buff or not options.debuff then
+			return false
+		end
+	end
+	return true
 end
 
 function ns.SetLocked(locked)
@@ -221,15 +243,15 @@ function ns.SaveStandalonePosition(unit, frame)
 	if not frame or not ns.DB().standalone[unit] then
 		return
 	end
-	local point, _, relativePoint, x, y = frame:GetPoint(1)
+	local point, _, relativePoint, x, y = frame:GetPoint(ns.NUMBER.ONE)
 	if not point then
 		return
 	end
 	local saved = ns.DB().standalone[unit]
 	saved.point = point
 	saved.relativePoint = relativePoint or point
-	saved.x = x or 0
-	saved.y = y or 0
+	saved.x = x or ns.NUMBER.ZERO
+	saved.y = y or ns.NUMBER.ZERO
 end
 
 function ns.SetAttachedOffset(unit, x, y)
@@ -247,7 +269,7 @@ function ns.GetMinimapButtonAngle()
 end
 
 function ns.SetMinimapButtonAngle(angle)
-	ns.DB().minimap.angle = clamp(angle, 0, 360, ns.DEFAULTS.minimap.angle)
+	ns.DB().minimap.angle = clamp(angle, ns.NUMBER.ZERO, ns.MINIMAP_MATH.FULL_CIRCLE_DEGREES, ns.DEFAULTS.minimap.angle)
 	return ns.DB().minimap.angle
 end
 

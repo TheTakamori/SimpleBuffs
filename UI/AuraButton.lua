@@ -1,8 +1,6 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
-local QUESTION_MARK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
-
 local function set_count_text(button, entry, appearance)
 	if not button.count then
 		return
@@ -13,7 +11,7 @@ local function set_count_text(button, entry, appearance)
 	end
 
 	if C_UnitAuras and C_UnitAuras.GetAuraApplicationDisplayCount and entry.auraInstanceID then
-		button.count:SetText(C_UnitAuras.GetAuraApplicationDisplayCount(entry.unit, entry.auraInstanceID, 2, 99))
+		button.count:SetText(C_UnitAuras.GetAuraApplicationDisplayCount(entry.unit, entry.auraInstanceID, ns.AURA_BUTTON.COUNT_MIN, ns.AURA_BUTTON.COUNT_MAX))
 		return
 	end
 
@@ -41,8 +39,8 @@ local function set_cooldown(button, entry, appearance)
 	local aura = entry.aura
 	local duration = aura.duration
 	local expirationTime = aura.expirationTime
-	if duration and expirationTime and duration > 0 then
-		button.cooldown:SetCooldown(expirationTime - duration, duration, aura.timeMod or 1)
+	if duration and expirationTime and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION then
+		button.cooldown:SetCooldown(expirationTime - duration, duration, aura.timeMod or ns.AURA_BUTTON.FALLBACK_MOD_RATE)
 	else
 		button.cooldown:Clear()
 	end
@@ -53,13 +51,18 @@ local function on_enter(self)
 	if not GameTooltip or not entry then
 		return
 	end
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+	GameTooltip:SetOwner(self, ns.UI.ANCHOR_RIGHT)
 	if entry.auraType == ns.AURA_TYPE.DEBUFF and GameTooltip.SetUnitDebuffByAuraInstanceID and entry.auraInstanceID then
 		GameTooltip:SetUnitDebuffByAuraInstanceID(entry.unit, entry.auraInstanceID, ns.AURA_FILTER[entry.auraType])
 	elseif entry.auraType == ns.AURA_TYPE.BUFF and GameTooltip.SetUnitBuffByAuraInstanceID and entry.auraInstanceID then
 		GameTooltip:SetUnitBuffByAuraInstanceID(entry.unit, entry.auraInstanceID, ns.AURA_FILTER[entry.auraType])
 	else
-		GameTooltip:SetText((ns.UNIT_LABEL[entry.unit] or entry.unit) .. " " .. (ns.AURA_LABEL[entry.auraType] or "Aura"), 1, 1, 1)
+		GameTooltip:SetText(
+			(ns.UNIT_LABEL[entry.unit] or entry.unit) .. ns.TEXT.SPACE .. (ns.AURA_LABEL[entry.auraType] or ns.TEXT.AURA_TOOLTIP_FALLBACK),
+			ns.AURA_BUTTON.TOOLTIP_COLOR_R,
+			ns.AURA_BUTTON.TOOLTIP_COLOR_G,
+			ns.AURA_BUTTON.TOOLTIP_COLOR_B
+		)
 	end
 	GameTooltip:Show()
 end
@@ -83,7 +86,7 @@ local function on_drag_stop(self)
 end
 
 local function apply_icon(button, aura)
-	button.icon:SetTexture(QUESTION_MARK_ICON)
+	button.icon:SetTexture(ns.AURA_BUTTON.QUESTION_MARK_ICON)
 	if not aura then
 		return
 	end
@@ -96,31 +99,31 @@ local function apply_icon(button, aura)
 	end
 
 	local iconType = type(icon)
-	if iconType == "number" or iconType == "string" then
+	if iconType == ns.LUA_TYPE.NUMBER or iconType == ns.LUA_TYPE.STRING then
 		button.icon:SetTexture(icon)
 	end
 end
 
 function ns.CreateAuraButton(parent)
-	local button = CreateFrame("Button", nil, parent)
-	button.icon = button:CreateTexture(nil, "BACKGROUND")
+	local button = CreateFrame(ns.UI.BUTTON, nil, parent)
+	button.icon = button:CreateTexture(nil, ns.UI.BACKGROUND)
 	button.icon:SetAllPoints()
-	button.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	button.icon:SetTexCoord(ns.AURA_BUTTON.TEX_COORD_LEFT, ns.AURA_BUTTON.TEX_COORD_RIGHT, ns.AURA_BUTTON.TEX_COORD_TOP, ns.AURA_BUTTON.TEX_COORD_BOTTOM)
 
-	button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
+	button.cooldown = CreateFrame(ns.UI.COOLDOWN, nil, button, ns.UI.COOLDOWN_FRAME_TEMPLATE)
 	button.cooldown:SetAllPoints()
 	button.cooldown:SetReverse(true)
 
-	button.count = button:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
-	button.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -1, 1)
+	button.count = button:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.NUMBER_FONT_NORMAL_SMALL)
+	button.count:SetPoint(ns.UI.ANCHOR_BOTTOMRIGHT, button, ns.UI.ANCHOR_BOTTOMRIGHT, ns.AURA_BUTTON.COUNT_OFFSET_X, ns.AURA_BUTTON.COUNT_OFFSET_Y)
 
-	button.auraTypeBorder = button:CreateTexture(nil, "BORDER")
+	button.auraTypeBorder = button:CreateTexture(nil, ns.UI.BORDER)
 	button.auraTypeBorder:SetAllPoints()
-	button:RegisterForDrag("LeftButton")
-	button:SetScript("OnEnter", on_enter)
-	button:SetScript("OnLeave", on_leave)
-	button:SetScript("OnDragStart", on_drag_start)
-	button:SetScript("OnDragStop", on_drag_stop)
+	button:RegisterForDrag(ns.UI.LEFT_BUTTON)
+	button:SetScript(ns.UI.ON_ENTER, on_enter)
+	button:SetScript(ns.UI.ON_LEAVE, on_leave)
+	button:SetScript(ns.UI.ON_DRAG_START, on_drag_start)
+	button:SetScript(ns.UI.ON_DRAG_STOP, on_drag_stop)
 
 	return button
 end
@@ -135,9 +138,9 @@ function ns.ApplyAuraButton(button, entry, size, appearance)
 	local aura = entry.aura
 	apply_icon(button, aura)
 	if entry.auraType == ns.AURA_TYPE.DEBUFF then
-		button.auraTypeBorder:SetColorTexture(0.8, 0.2, 0.2, 0.55)
+		button.auraTypeBorder:SetColorTexture(ns.AURA_BUTTON.DEBUFF_BORDER_R, ns.AURA_BUTTON.DEBUFF_BORDER_G, ns.AURA_BUTTON.DEBUFF_BORDER_B, ns.AURA_BUTTON.DEBUFF_BORDER_A)
 	else
-		button.auraTypeBorder:SetColorTexture(0.2, 0.6, 1, 0.35)
+		button.auraTypeBorder:SetColorTexture(ns.AURA_BUTTON.BUFF_BORDER_R, ns.AURA_BUTTON.BUFF_BORDER_G, ns.AURA_BUTTON.BUFF_BORDER_B, ns.AURA_BUTTON.BUFF_BORDER_A)
 	end
 
 	if aura then

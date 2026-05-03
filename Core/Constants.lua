@@ -2,7 +2,7 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.ADDON_NAME = "SimpleBuffs"
-ns.VERSION = "0.0.2"
+ns.VERSION = "0.0.3"
 ns.DB_VERSION = 1
 
 ns.SLASH_COMMANDS = {
@@ -108,42 +108,4 @@ ns.FILTER_MODE_LABEL = {
 	player = "Player/Pet Cast",
 	important = "Important",
 	["crowd-control"] = "Crowd Control",
-}
-
-ns.LIMITS = {
-	ICON_SIZE_MIN = 16,
-	ICON_SIZE_MAX = 64,
-	SPACING_MIN = 0,
-	SPACING_MAX = 16,
-	MAX_AURAS_MIN = 1,
-	MAX_AURAS_MAX = 40,
-	SCALE_MIN = 0.5,
-	SCALE_MAX = 2,
-	MINIMAP_BUTTON_SIZE = 31,
-	MINIMAP_BUTTON_BACKGROUND_SIZE = 24,
-	MINIMAP_BUTTON_ICON_SIZE = 18,
-	MINIMAP_BUTTON_OVERLAY_SIZE = 50,
-	MINIMAP_ICON_OFFSET_X = 7,
-	MINIMAP_ICON_OFFSET_Y = -6,
-	MINIMAP_RADIUS_OFFSET = 5,
-}
-
-ns.TEXT = {
-	OPTIONS_TITLE = "Simple Buffs",
-	OPTIONS_SUBTITLE = "Configure buff and debuff timers for supported unit frames.",
-	LOADED = "Simple Buffs loaded. Use /sbuff for options.",
-	RESET = "Simple Buffs settings reset.",
-	LOCKED = "Simple Buffs frames locked.",
-	UNLOCKED = "Simple Buffs frames unlocked. Hold Shift and drag standalone frames to move them.",
-	MINIMAP_TOOLTIP_OPEN = "Left-click to open options.",
-	MINIMAP_TOOLTIP_STATE = "Dragging: %s",
-	MINIMAP_TOOLTIP_LOCK = "Right-click to toggle frame dragging lock.",
-	MINIMAP_TOOLTIP_DRAG = "Drag to move this button.",
-}
-
-ns.TEXTURE = {
-	MINIMAP_BACKGROUND = "Interface\\Minimap\\UI-Minimap-Background",
-	MINIMAP_BORDER = "Interface\\Minimap\\MiniMap-TrackingBorder",
-	MINIMAP_HIGHLIGHT = "Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight",
-	MINIMAP_ICON = "Interface\\AddOns\\SimpleBuffs\\Media\\Icons\\simplebuffs-64.png",
 }

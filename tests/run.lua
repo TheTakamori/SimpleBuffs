@@ -24,6 +24,9 @@ _G.Enum = {
 }
 
 assert(loadfile(root .. "/Core/Constants.lua"))()
+assert(loadfile(root .. "/Core/WoWConstants.lua"))()
+assert(loadfile(root .. "/Core/UIConstants.lua"))()
+assert(loadfile(root .. "/Core/Text.lua"))()
 assert(loadfile(root .. "/Core/UnitRegistry.lua"))()
 assert(loadfile(root .. "/Core/Defaults.lua"))()
 assert(loadfile(root .. "/Core/Runtime.lua"))()

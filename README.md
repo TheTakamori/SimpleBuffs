@@ -5,19 +5,19 @@ configurable displays. It is built for World of Warcraft Retail
 `12.0.5 (Midnight)` and uses Blizzard cooldown widgets for countdown text so
 the UI can display aura timers without custom combat-state calculations.
 
-Current version: `0.0.2`.
+Current version: `0.0.3`.
 
 ## Features
 
-- Shows player, target, focus, pet, vehicle, party, party pet, raid, raid pet,
-  boss, arena, and arena pet buffs/debuffs by default.
+- Shows player, target, focus, pet, party, party pet, raid, raid pet, boss,
+  arena, and arena pet buffs/debuffs by default.
 - Supports attached displays near stable Blizzard unit frames, including party
   frames when Blizzard exposes a usable anchor.
 - Provides standalone grouped displays for units without attached anchors or
   for users who prefer a custom placement. Unlocked standalone displays move
   with Shift-drag.
 - Provides configurable icon size, spacing, layout, max aura count, sorting,
-  and basic filtering.
+  basic filtering, and quick enable/disable controls for all unit groups.
 - Uses event-driven aura updates instead of constant polling.
 - Stores settings in `SimpleBuffsDB`.
 

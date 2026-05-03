@@ -1,18 +1,18 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("ADDON_LOADED")
-frame:RegisterEvent("PLAYER_LOGIN")
-frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:RegisterEvent("PLAYER_FOCUS_CHANGED")
-frame:RegisterEvent("PLAYER_TARGET_CHANGED")
-frame:RegisterEvent("UNIT_AURA")
-frame:RegisterEvent("UNIT_PET")
-frame:RegisterEvent("GROUP_ROSTER_UPDATE")
-frame:RegisterEvent("RAID_ROSTER_UPDATE")
-frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
-frame:RegisterEvent("ARENA_OPPONENT_UPDATE")
+local frame = CreateFrame(ns.UI.FRAME)
+frame:RegisterEvent(ns.EVENT.ADDON_LOADED)
+frame:RegisterEvent(ns.EVENT.PLAYER_LOGIN)
+frame:RegisterEvent(ns.EVENT.PLAYER_ENTERING_WORLD)
+frame:RegisterEvent(ns.EVENT.PLAYER_FOCUS_CHANGED)
+frame:RegisterEvent(ns.EVENT.PLAYER_TARGET_CHANGED)
+frame:RegisterEvent(ns.EVENT.UNIT_AURA)
+frame:RegisterEvent(ns.EVENT.UNIT_PET)
+frame:RegisterEvent(ns.EVENT.GROUP_ROSTER_UPDATE)
+frame:RegisterEvent(ns.EVENT.RAID_ROSTER_UPDATE)
+frame:RegisterEvent(ns.EVENT.INSTANCE_ENCOUNTER_ENGAGE_UNIT)
+frame:RegisterEvent(ns.EVENT.ARENA_OPPONENT_UPDATE)
 
 local function print_loaded()
 	if DEFAULT_CHAT_FRAME then
@@ -57,8 +57,8 @@ local function refresh_groups(...)
 	end
 end
 
-frame:SetScript("OnEvent", function(_, event, arg1)
-	if event == "ADDON_LOADED" then
+frame:SetScript(ns.UI.ON_EVENT, function(_, event, arg1)
+	if event == ns.EVENT.ADDON_LOADED then
 		if arg1 ~= ns.ADDON_NAME then
 			return
 		end
@@ -74,30 +74,30 @@ frame:SetScript("OnEvent", function(_, event, arg1)
 			ns.EnsureMinimapButton()
 		end
 		print_loaded()
-	elseif event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
+	elseif event == ns.EVENT.PLAYER_LOGIN or event == ns.EVENT.PLAYER_ENTERING_WORLD then
 		if ns.EnsureMinimapButton then
 			ns.EnsureMinimapButton()
 		end
 		if ns.EnsureDisplays then
 			ns.EnsureDisplays()
 		end
-	elseif event == "PLAYER_FOCUS_CHANGED" then
-		refresh_unit("focus")
-	elseif event == "PLAYER_TARGET_CHANGED" then
-		refresh_unit("target")
-	elseif event == "UNIT_PET" then
-		if arg1 == "player" then
-			refresh_unit("pet")
+	elseif event == ns.EVENT.PLAYER_FOCUS_CHANGED then
+		refresh_unit(ns.UNIT_TOKEN.FOCUS)
+	elseif event == ns.EVENT.PLAYER_TARGET_CHANGED then
+		refresh_unit(ns.UNIT_TOKEN.TARGET)
+	elseif event == ns.EVENT.UNIT_PET then
+		if arg1 == ns.UNIT_TOKEN.PLAYER then
+			refresh_unit(ns.UNIT_TOKEN.PET)
 		else
 			refresh_groups(ns.UNIT_GROUP.PARTY_PETS, ns.UNIT_GROUP.RAID_PETS)
 		end
-	elseif event == "GROUP_ROSTER_UPDATE" or event == "RAID_ROSTER_UPDATE" then
+	elseif event == ns.EVENT.GROUP_ROSTER_UPDATE or event == ns.EVENT.RAID_ROSTER_UPDATE then
 		refresh_groups(ns.UNIT_GROUP.PARTY, ns.UNIT_GROUP.PARTY_PETS, ns.UNIT_GROUP.RAID, ns.UNIT_GROUP.RAID_PETS)
-	elseif event == "INSTANCE_ENCOUNTER_ENGAGE_UNIT" then
+	elseif event == ns.EVENT.INSTANCE_ENCOUNTER_ENGAGE_UNIT then
 		refresh_group(ns.UNIT_GROUP.BOSS)
-	elseif event == "ARENA_OPPONENT_UPDATE" then
+	elseif event == ns.EVENT.ARENA_OPPONENT_UPDATE then
 		refresh_groups(ns.UNIT_GROUP.ARENA, ns.UNIT_GROUP.ARENA_PETS)
-	elseif event == "UNIT_AURA" then
+	elseif event == ns.EVENT.UNIT_AURA then
 		if ns.IsTrackedUnit(arg1) then
 			refresh_unit(arg1)
 		end

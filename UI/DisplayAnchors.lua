@@ -2,17 +2,17 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 local DEFAULT_ATTACHED_POSITION = {
-	point = "TOPLEFT",
-	relativePoint = "BOTTOMLEFT",
-	x = 0,
-	y = -6,
+	point = ns.UI.ANCHOR_TOPLEFT,
+	relativePoint = ns.UI.ANCHOR_BOTTOMLEFT,
+	x = ns.ATTACHED_LAYOUT.DEFAULT_X,
+	y = ns.ATTACHED_LAYOUT.DEFAULT_Y,
 }
 
 local PARTY_CONTAINER_ATTACHED_POSITION = {
-	point = "TOPLEFT",
-	relativePoint = "TOPRIGHT",
-	x = 8,
-	y = 0,
+	point = ns.UI.ANCHOR_TOPLEFT,
+	relativePoint = ns.UI.ANCHOR_TOPRIGHT,
+	x = ns.ATTACHED_LAYOUT.PARTY_CONTAINER_X,
+	y = ns.ATTACHED_LAYOUT.PARTY_CONTAINER_Y,
 }
 
 local function get_frame_unit(frame)
@@ -20,7 +20,7 @@ local function get_frame_unit(frame)
 		return nil
 	end
 	if frame.GetAttribute then
-		local ok, unit = pcall(frame.GetAttribute, frame, "unit")
+		local ok, unit = pcall(frame.GetAttribute, frame, ns.FRAME_ATTR.UNIT)
 		if ok and unit then
 			return unit
 		end
@@ -58,7 +58,7 @@ local function find_member_frame(container, unit)
 
 	local fallback = nil
 	local memberFrames = container.memberUnitFrames or container.MemberFrames
-	if type(memberFrames) == "table" then
+	if type(memberFrames) == ns.LUA_TYPE.TABLE then
 		for _, memberFrame in pairs(memberFrames) do
 			if frame_matches_unit(memberFrame, unit) then
 				if frame_is_visible(memberFrame) then
@@ -86,13 +86,13 @@ local function find_member_frame(container, unit)
 end
 
 local function get_party_anchor(unit, partyIndex)
-	local partyFrame = _G["PartyFrame"]
-	local compactPartyFrame = _G["CompactPartyFrame"]
+	local partyFrame = _G[ns.BLIZZARD_FRAME.PARTY_FRAME]
+	local compactPartyFrame = _G[ns.BLIZZARD_FRAME.COMPACT_PARTY_FRAME]
 	local directAnchors = {
-		_G["CompactPartyFrameMember" .. partyIndex],
-		_G["PartyMemberFrame" .. partyIndex],
-		_G["PartyFrameMember" .. partyIndex],
-		partyFrame and partyFrame["MemberFrame" .. partyIndex],
+		_G[ns.BLIZZARD_FRAME.COMPACT_PARTY_FRAME_MEMBER_PREFIX .. partyIndex],
+		_G[ns.BLIZZARD_FRAME.PARTY_MEMBER_FRAME_PREFIX .. partyIndex],
+		_G[ns.BLIZZARD_FRAME.PARTY_FRAME_MEMBER_PREFIX .. partyIndex],
+		partyFrame and partyFrame[ns.BLIZZARD_FRAME.MEMBER_FRAME_PREFIX .. partyIndex],
 	}
 	for index = 1, #directAnchors do
 		local directAnchor = directAnchors[index]
@@ -116,7 +116,7 @@ local function get_party_anchor(unit, partyIndex)
 			point = PARTY_CONTAINER_ATTACHED_POSITION.point,
 			relativePoint = PARTY_CONTAINER_ATTACHED_POSITION.relativePoint,
 			x = PARTY_CONTAINER_ATTACHED_POSITION.x,
-			y = PARTY_CONTAINER_ATTACHED_POSITION.y - ((tonumber(partyIndex) or 1) - 1) * 44,
+			y = PARTY_CONTAINER_ATTACHED_POSITION.y - ((tonumber(partyIndex) or ns.ATTACHED_LAYOUT.PARTY_INDEX_FALLBACK) - ns.LAYOUT_METRIC.INDEX_OFFSET) * ns.ATTACHED_LAYOUT.PARTY_ROW_SPACING,
 		}
 		return containerAnchor, position
 	end
@@ -125,17 +125,17 @@ local function get_party_anchor(unit, partyIndex)
 end
 
 function ns.GetAttachedDisplayAnchor(unit)
-	if unit == "player" then
-		return _G["PlayerFrame"]
-	elseif unit == "target" then
-		return _G["TargetFrame"]
-	elseif unit == "focus" then
-		return _G["FocusFrame"]
-	elseif unit == "pet" then
-		return _G["PetFrame"]
+	if unit == ns.UNIT_TOKEN.PLAYER then
+		return _G[ns.BLIZZARD_FRAME.PLAYER_FRAME]
+	elseif unit == ns.UNIT_TOKEN.TARGET then
+		return _G[ns.BLIZZARD_FRAME.TARGET_FRAME]
+	elseif unit == ns.UNIT_TOKEN.FOCUS then
+		return _G[ns.BLIZZARD_FRAME.FOCUS_FRAME]
+	elseif unit == ns.UNIT_TOKEN.PET then
+		return _G[ns.BLIZZARD_FRAME.PET_FRAME]
 	end
 
-	local partyIndex = unit:match("^party(%d+)$")
+	local partyIndex = unit:match(ns.PATTERN.PARTY_UNIT)
 	if partyIndex then
 		return get_party_anchor(unit, partyIndex)
 	end

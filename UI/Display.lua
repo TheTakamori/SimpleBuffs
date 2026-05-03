@@ -6,8 +6,8 @@ local MODE_STANDALONE = ns.DISPLAY_MODE.STANDALONE
 local DISPLAY_MODES = { MODE_ATTACHED, MODE_STANDALONE }
 
 local function get_display_name(unit, mode)
-	local label = (ns.UNIT_LABEL[unit] or unit):gsub("%W", "")
-	return "SimpleBuffs" .. label .. mode:gsub("^%l", string.upper) .. "Display"
+	local label = (ns.UNIT_LABEL[unit] or unit):gsub(ns.PATTERN.NON_WORD, ns.TEXT.EMPTY)
+	return ns.FRAME_NAME.DISPLAY_PREFIX .. label .. mode:gsub(ns.PATTERN.FIRST_LOWERCASE, string.upper) .. ns.FRAME_NAME.DISPLAY_SUFFIX
 end
 
 local function unit_exists(unit)
@@ -40,19 +40,19 @@ local function place_frame(frame, unit, mode)
 end
 
 local function create_display(unit, mode)
-	local frame = CreateFrame("Frame", get_display_name(unit, mode), UIParent)
+	local frame = CreateFrame(ns.UI.FRAME, get_display_name(unit, mode), UIParent)
 	frame.unit = unit
 	frame.mode = mode
-	frame:SetSize(180, 64)
-	frame:SetFrameStrata(mode == MODE_STANDALONE and "MEDIUM" or "LOW")
+	frame:SetSize(ns.DISPLAY_FRAME.WIDTH, ns.DISPLAY_FRAME.HEIGHT)
+	frame:SetFrameStrata(mode == MODE_STANDALONE and ns.UI.FRAME_STRATA_MEDIUM or ns.UI.FRAME_STRATA_LOW)
 
-	frame.background = frame:CreateTexture(nil, "BACKGROUND")
+	frame.background = frame:CreateTexture(nil, ns.UI.BACKGROUND)
 	frame.background:SetAllPoints()
 	if mode == MODE_STANDALONE then
-		frame.background:SetColorTexture(0, 0, 0, 0.25)
+		frame.background:SetColorTexture(ns.DISPLAY_FRAME.STANDALONE_BG_R, ns.DISPLAY_FRAME.STANDALONE_BG_G, ns.DISPLAY_FRAME.STANDALONE_BG_B, ns.DISPLAY_FRAME.STANDALONE_BG_A)
 		ns.ApplyStandaloneDrag(frame)
 	else
-		frame.background:SetColorTexture(0, 0, 0, 0)
+		frame.background:SetColorTexture(ns.DISPLAY_FRAME.ATTACHED_BG_R, ns.DISPLAY_FRAME.ATTACHED_BG_G, ns.DISPLAY_FRAME.ATTACHED_BG_B, ns.DISPLAY_FRAME.ATTACHED_BG_A)
 	end
 
 	return frame
@@ -68,14 +68,14 @@ local function get_or_create_container(containerKey)
 		return runtime.containers[containerKey]
 	end
 
-	local frame = CreateFrame("Frame", "SimpleBuffs" .. containerKey:gsub("^%l", string.upper) .. "Container", UIParent)
+	local frame = CreateFrame(ns.UI.FRAME, ns.FRAME_NAME.DISPLAY_PREFIX .. containerKey:gsub(ns.PATTERN.FIRST_LOWERCASE, string.upper) .. ns.FRAME_NAME.CONTAINER_SUFFIX, UIParent)
 	frame.containerKey = containerKey
 	frame.unit = containerKey
-	frame:SetSize(220, 64)
-	frame:SetFrameStrata("MEDIUM")
-	frame.background = frame:CreateTexture(nil, "BACKGROUND")
+	frame:SetSize(ns.DISPLAY_FRAME.CONTAINER_WIDTH, ns.DISPLAY_FRAME.CONTAINER_HEIGHT)
+	frame:SetFrameStrata(ns.UI.FRAME_STRATA_MEDIUM)
+	frame.background = frame:CreateTexture(nil, ns.UI.BACKGROUND)
 	frame.background:SetAllPoints()
-	frame.background:SetColorTexture(0, 0, 0, 0.18)
+	frame.background:SetColorTexture(ns.DISPLAY_FRAME.CONTAINER_BG_R, ns.DISPLAY_FRAME.CONTAINER_BG_G, ns.DISPLAY_FRAME.CONTAINER_BG_B, ns.DISPLAY_FRAME.CONTAINER_BG_A)
 	ns.ApplyStandaloneDrag(frame)
 	runtime.containers[containerKey] = frame
 	return frame
@@ -158,10 +158,10 @@ function ns.LayoutStandaloneContainers()
 		place_container(container)
 		container:EnableMouse(not ns.DB().locked)
 
-		local y = 0
-		local maxWidth = 1
-		local totalHeight = 0
-		local visibleCount = 0
+		local y = ns.LAYOUT_METRIC.ORIGIN_Y
+		local maxWidth = ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
+		local totalHeight = ns.LAYOUT_METRIC.ORIGIN_Y
+		local visibleCount = ns.NUMBER.ZERO
 		ns.ForEachConfiguredUnit(function(unit)
 			if get_container_key_for_unit(unit) ~= containerKey then
 				return
@@ -169,20 +169,20 @@ function ns.LayoutStandaloneContainers()
 			local frame = runtime.frames[MODE_STANDALONE] and runtime.frames[MODE_STANDALONE][unit]
 			if frame and frame:IsShown() then
 				frame:ClearAllPoints()
-				frame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, y)
-				local width = frame:GetWidth() or 1
+				frame:SetPoint(ns.UI.ANCHOR_TOPLEFT, container, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
+				local width = frame:GetWidth() or ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
 				local height = frame:GetHeight() or appearance.iconSize
 				if width > maxWidth then
 					maxWidth = width
 				end
 				y = y - height - appearance.rowSpacing
 				totalHeight = totalHeight + height + appearance.rowSpacing
-				visibleCount = visibleCount + 1
+				visibleCount = visibleCount + ns.NUMBER.ONE
 			end
 		end)
 
-		container:SetSize(math.max(maxWidth, 64), math.max(totalHeight, appearance.iconSize))
-		container:SetShown(visibleCount > 0)
+		container:SetSize(math.max(maxWidth, ns.DISPLAY_FRAME.MIN_WIDTH), math.max(totalHeight, appearance.iconSize))
+		container:SetShown(visibleCount > ns.NUMBER.ZERO)
 	end
 end
 

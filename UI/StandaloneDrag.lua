@@ -58,11 +58,11 @@ end
 
 function ns.ApplyStandaloneDrag(frame)
 	frame:SetMovable(true)
-	frame:RegisterForDrag("LeftButton")
-	frame:SetScript("OnDragStart", function(self)
+	frame:RegisterForDrag(ns.UI.LEFT_BUTTON)
+	frame:SetScript(ns.UI.ON_DRAG_START, function(self)
 		ns.StartStandaloneDrag(self)
 	end)
-	frame:SetScript("OnDragStop", function(self)
+	frame:SetScript(ns.UI.ON_DRAG_STOP, function(self)
 		ns.StopStandaloneDrag(self)
 	end)
 end

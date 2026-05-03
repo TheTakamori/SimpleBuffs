@@ -40,10 +40,6 @@ ns.DEFAULTS = {
 			buff = true,
 			debuff = true,
 		},
-		vehicle = {
-			buff = true,
-			debuff = true,
-		},
 		party = {
 			buff = true,
 			debuff = true,
@@ -123,12 +119,6 @@ ns.DEFAULTS = {
 			relativePoint = ns.STANDALONE_DEFAULTS.pet.relativePoint,
 			x = ns.STANDALONE_DEFAULTS.pet.x,
 			y = ns.STANDALONE_DEFAULTS.pet.y,
-		},
-		vehicle = {
-			point = ns.STANDALONE_DEFAULTS.vehicle.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.vehicle.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.vehicle.x,
-			y = ns.STANDALONE_DEFAULTS.vehicle.y,
 		},
 		party = {
 			point = ns.STANDALONE_DEFAULTS.party.point,

@@ -7,7 +7,7 @@ local function get_or_create_row(frame, auraType)
 		return frame.rows[auraType]
 	end
 
-	local row = CreateFrame("Frame", nil, frame)
+	local row = CreateFrame(ns.UI.FRAME, nil, frame)
 	row.buttons = {}
 	frame.rows[auraType] = row
 	return row
@@ -16,24 +16,24 @@ end
 local function position_button(button, row, index, size, spacing, layout)
 	button:ClearAllPoints()
 	if layout == ns.LAYOUT.VERTICAL then
-		button:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -((index - 1) * (size + spacing)))
+		button:SetPoint(ns.UI.ANCHOR_TOPLEFT, row, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, -((index - ns.LAYOUT_METRIC.INDEX_OFFSET) * (size + spacing)))
 	elseif layout == ns.LAYOUT.VERTICAL_REVERSE then
-		button:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, (index - 1) * (size + spacing))
+		button:SetPoint(ns.UI.ANCHOR_BOTTOMLEFT, row, ns.UI.ANCHOR_BOTTOMLEFT, ns.LAYOUT_METRIC.ORIGIN_X, (index - ns.LAYOUT_METRIC.INDEX_OFFSET) * (size + spacing))
 	elseif layout == ns.LAYOUT.HORIZONTAL_REVERSE then
-		button:SetPoint("TOPRIGHT", row, "TOPRIGHT", -((index - 1) * (size + spacing)), 0)
+		button:SetPoint(ns.UI.ANCHOR_TOPRIGHT, row, ns.UI.ANCHOR_TOPRIGHT, -((index - ns.LAYOUT_METRIC.INDEX_OFFSET) * (size + spacing)), ns.LAYOUT_METRIC.ORIGIN_Y)
 	else
-		button:SetPoint("TOPLEFT", row, "TOPLEFT", (index - 1) * (size + spacing), 0)
+		button:SetPoint(ns.UI.ANCHOR_TOPLEFT, row, ns.UI.ANCHOR_TOPLEFT, (index - ns.LAYOUT_METRIC.INDEX_OFFSET) * (size + spacing), ns.LAYOUT_METRIC.ORIGIN_Y)
 	end
 end
 
 local function layout_size(count, size, spacing, layout)
-	if count <= 0 then
-		return 1, size
+	if count <= ns.NUMBER.ZERO then
+		return ns.LAYOUT_METRIC.MIN_SIZE, size
 	end
 	if layout == ns.LAYOUT.VERTICAL or layout == ns.LAYOUT.VERTICAL_REVERSE then
-		return size, count * size + math.max(0, count - 1) * spacing
+		return size, count * size + math.max(ns.NUMBER.ZERO, count - ns.LAYOUT_METRIC.INDEX_OFFSET) * spacing
 	end
-	return count * size + math.max(0, count - 1) * spacing, size
+	return count * size + math.max(ns.NUMBER.ZERO, count - ns.LAYOUT_METRIC.INDEX_OFFSET) * spacing, size
 end
 
 function ns.UpdateAuraDisplayRow(row, model, appearance)
@@ -74,9 +74,9 @@ end
 
 function ns.UpdateAuraDisplayFrame(frame, model)
 	local appearance = ns.GetAppearance()
-	local y = 0
-	local maxWidth = 1
-	local totalHeight = 0
+	local y = ns.LAYOUT_METRIC.ORIGIN_Y
+	local maxWidth = ns.LAYOUT_METRIC.MIN_SIZE
+	local totalHeight = ns.LAYOUT_METRIC.ORIGIN_Y
 
 	frame:SetScale(appearance.scale)
 	frame:EnableMouse(frame.mode == ns.DISPLAY_MODE.STANDALONE and not ns.DB().locked)
@@ -85,7 +85,7 @@ function ns.UpdateAuraDisplayFrame(frame, model)
 		local row = get_or_create_row(frame, auraType)
 		local width, height = ns.UpdateAuraDisplayRow(row, model and model[auraType], appearance)
 		row:ClearAllPoints()
-		row:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, y)
+		row:SetPoint(ns.UI.ANCHOR_TOPLEFT, frame, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
 		if row:IsShown() then
 			y = y - height - appearance.rowSpacing
 			totalHeight = totalHeight + height + appearance.rowSpacing
@@ -95,5 +95,5 @@ function ns.UpdateAuraDisplayFrame(frame, model)
 		end
 	end
 
-	frame:SetSize(math.max(maxWidth, 64), math.max(totalHeight, appearance.iconSize))
+	frame:SetSize(math.max(maxWidth, ns.DISPLAY_FRAME.MIN_WIDTH), math.max(totalHeight, appearance.iconSize))
 end

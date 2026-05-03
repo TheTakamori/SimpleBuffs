@@ -14,7 +14,7 @@ return function(runner, ns)
 		assert.equal(db.units.target.debuff, true)
 		assert.equal(db.units.focus.buff, true)
 		assert.equal(db.units.pet.debuff, true)
-		assert.equal(db.units.vehicle.buff, true)
+		assert.equal(db.units.vehicle, nil)
 		assert.equal(db.units.raid.debuff, true)
 		assert.equal(db.appearance.iconSize, 28)
 		assert.equal(db.appearance.showTitles, false)
@@ -79,6 +79,39 @@ return function(runner, ns)
 		assert.equal(ns.DB().locked, true)
 		assert.equal(ns.ToggleLocked(), false)
 		assert.equal(ns.DB().locked, false)
+	end)
+
+	runner:test("all unit aura toggles update together", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		assert.equal(ns.AreAllUnitAurasEnabled(), true)
+		assert.equal(ns.SetAllUnitAurasEnabled(false), false)
+		assert.equal(ns.AreAllUnitAurasEnabled(), false)
+		assert.equal(ns.DB().units.player.buff, false)
+		assert.equal(ns.DB().units.raidPets.debuff, false)
+
+		assert.equal(ns.SetAllUnitAurasEnabled(true), true)
+		assert.equal(ns.AreAllUnitAurasEnabled(), true)
+		assert.equal(ns.DB().units.party.buff, true)
+		assert.equal(ns.DB().units.arenaPets.debuff, true)
+	end)
+
+	runner:test("ResetDB restores settings and all unit toggles", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		ns.SetDisplayMode(ns.DISPLAY_MODE.BOTH)
+		ns.SetAllUnitAurasEnabled(false)
+		ns.SetAppearanceValue(ns.DB_KEY.ICON_SIZE, ns.LIMITS.ICON_SIZE_MAX)
+		ns.SetLocked(true)
+
+		local db = ns.ResetDB()
+
+		assert.equal(db.displayMode, ns.DEFAULTS.displayMode)
+		assert.equal(db.appearance.iconSize, ns.DEFAULTS.appearance.iconSize)
+		assert.equal(db.locked, false)
+		assert.equal(ns.AreAllUnitAurasEnabled(), true)
 	end)
 
 	runner:test("standalone dragging requires unlocked state and Shift", function()
