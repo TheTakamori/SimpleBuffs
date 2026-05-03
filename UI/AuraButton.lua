@@ -117,8 +117,6 @@ function ns.CreateAuraButton(parent)
 	button.count = button:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.NUMBER_FONT_NORMAL_SMALL)
 	button.count:SetPoint(ns.UI.ANCHOR_BOTTOMRIGHT, button, ns.UI.ANCHOR_BOTTOMRIGHT, ns.AURA_BUTTON.COUNT_OFFSET_X, ns.AURA_BUTTON.COUNT_OFFSET_Y)
 
-	button.auraTypeBorder = button:CreateTexture(nil, ns.UI.BORDER)
-	button.auraTypeBorder:SetAllPoints()
 	button:RegisterForDrag(ns.UI.LEFT_BUTTON)
 	button:SetScript(ns.UI.ON_ENTER, on_enter)
 	button:SetScript(ns.UI.ON_LEAVE, on_leave)
@@ -137,11 +135,6 @@ function ns.ApplyAuraButton(button, entry, size, appearance)
 
 	local aura = entry.aura
 	apply_icon(button, aura)
-	if entry.auraType == ns.AURA_TYPE.DEBUFF then
-		button.auraTypeBorder:SetColorTexture(ns.AURA_BUTTON.DEBUFF_BORDER_R, ns.AURA_BUTTON.DEBUFF_BORDER_G, ns.AURA_BUTTON.DEBUFF_BORDER_B, ns.AURA_BUTTON.DEBUFF_BORDER_A)
-	else
-		button.auraTypeBorder:SetColorTexture(ns.AURA_BUTTON.BUFF_BORDER_R, ns.AURA_BUTTON.BUFF_BORDER_G, ns.AURA_BUTTON.BUFF_BORDER_B, ns.AURA_BUTTON.BUFF_BORDER_A)
-	end
 
 	if aura then
 		set_cooldown(button, entry, appearance)
