@@ -1,6 +1,5 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
-local EMPTY_ROWS = {}
 local filterCache = {}
 
 local function get_enum_value(enumTable, key)
@@ -21,11 +20,11 @@ local function build_filter(unit, auraType)
 	end
 	local filter = baseFilter
 	if mode == ns.FILTER_MODE.PLAYER then
-		filter = baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.PLAYER
+		filter = baseFilter .. ns.AURA_FILTER_SEPARATOR .. ns.AURA_FILTER_SUFFIX.PLAYER
 	elseif mode == ns.FILTER_MODE.IMPORTANT then
-		filter = baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.IMPORTANT
+		filter = baseFilter .. ns.AURA_FILTER_SEPARATOR .. ns.AURA_FILTER_SUFFIX.IMPORTANT
 	elseif mode == ns.FILTER_MODE.CROWD_CONTROL then
-		filter = baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.CROWD_CONTROL
+		filter = baseFilter .. ns.AURA_FILTER_SEPARATOR .. ns.AURA_FILTER_SUFFIX.CROWD_CONTROL
 	end
 	filterCache[groupKey][auraType][mode] = filter
 	return filter
@@ -130,7 +129,7 @@ end
 
 function ns.ScanUnitAuraType(unit, auraType)
 	if not ns.IsUnitAuraEnabled(unit, auraType) or not unit_exists(unit) then
-		return EMPTY_ROWS
+		return {}
 	end
 
 	return scan_with_instance_ids(unit, auraType)

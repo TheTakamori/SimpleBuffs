@@ -17,11 +17,7 @@ frame:RegisterEvent(ns.EVENT.ARENA_OPPONENT_UPDATE)
 local dirtyRefreshPending = false
 
 local function print_loaded()
-	if DEFAULT_CHAT_FRAME then
-		DEFAULT_CHAT_FRAME:AddMessage(ns.TEXT.LOADED)
-	else
-		print(ns.TEXT.LOADED)
-	end
+	ns.PrintMessage(ns.TEXT.LOADED)
 end
 
 local function refresh_unit(unit, skipLayout)

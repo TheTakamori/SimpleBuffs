@@ -16,6 +16,19 @@ local function aura(id, name)
 end
 
 return function(runner, ns)
+	runner:test("ScanUnitAuraType returns independent empty rows", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		ns.SetUnitGroupAuraEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+
+		local first = ns.ScanUnitAuraType(ns.UNIT_TOKEN.PLAYER, ns.AURA_TYPE.BUFF)
+		local second = ns.ScanUnitAuraType(ns.UNIT_TOKEN.PLAYER, ns.AURA_TYPE.BUFF)
+
+		assert.equal(first == second, false)
+		assert.equal(#first, 0)
+		assert.equal(#second, 0)
+	end)
+
 	runner:test("ScanUnitAuraType reads focus buffs with bounded filters", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()

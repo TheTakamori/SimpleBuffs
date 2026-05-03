@@ -60,3 +60,11 @@ ns.TEXT = {
 	SLASH_HELP_UNLOCK = "/sbuff unlock - Unlock Shift-drag for standalone displays",
 	SLASH_HELP_RESET = "/sbuff reset - Reset settings",
 }
+
+function ns.PrintMessage(message)
+	if DEFAULT_CHAT_FRAME then
+		DEFAULT_CHAT_FRAME:AddMessage(message)
+	else
+		print(message)
+	end
+end

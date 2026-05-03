@@ -2,7 +2,7 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.ADDON_NAME = "SimpleBuffs"
-ns.VERSION = "1.1.1"
+ns.VERSION = "1.1.2"
 ns.DB_VERSION = 5
 ns.SELECT_COUNT = "#"
 

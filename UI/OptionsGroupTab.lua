@@ -39,7 +39,10 @@ local function create_unit_reset_button(tab, groupKey, panelState, y)
 		if panelState.frame then
 			panelState.frame:RefreshFromDB()
 		end
-	end, nil, false, ns.TEXT.OPTIONS_TOOLTIP_RESET_UNIT_DEFAULTS)
+	end, {
+		refreshDisplays = false,
+		tooltip = ns.TEXT.OPTIONS_TOOLTIP_RESET_UNIT_DEFAULTS,
+	})
 	resetUnitButton:ClearAllPoints()
 	resetUnitButton:SetPoint(ns.UI.ANCHOR_TOPRIGHT, tab, ns.UI.ANCHOR_TOPRIGHT, ns.OPTIONS_LAYOUT.TAB_RESET_BUTTON_RIGHT_X, y)
 	return resetUnitButton
@@ -74,7 +77,10 @@ local function create_copy_from_row(tab, groupKey, panelState, y)
 				panelState.frame:RefreshFromDB()
 			end
 		end
-	end, nil, false, ns.TEXT.OPTIONS_TOOLTIP_COPY)
+	end, {
+		refreshDisplays = false,
+		tooltip = ns.TEXT.OPTIONS_TOOLTIP_COPY,
+	})
 	copyButton:ClearAllPoints()
 	copyButton:SetPoint(ns.UI.ANCHOR_LEFT, tab, ns.UI.ANCHOR_TOPLEFT, ns.OPTIONS_LAYOUT.TAB_COPY_BUTTON_X, y)
 	register_tab_child(tab, copyButton)

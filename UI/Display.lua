@@ -221,10 +221,7 @@ function ns.LayoutStandaloneContainers()
 		local maxWidth = ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
 		local totalHeight = ns.LAYOUT_METRIC.ORIGIN_Y
 		local visibleCount = ns.NUMBER.ZERO
-		ns.ForEachConfiguredUnit(function(unit)
-			if get_container_key_for_unit(unit) ~= containerKey then
-				return
-			end
+		ns.ForEachUnitInStandaloneContainer(containerKey, function(unit)
 			local frame = runtime.frames[MODE_STANDALONE] and runtime.frames[MODE_STANDALONE][unit]
 			if frame and frame:IsShown() then
 				frame:ClearAllPoints()

@@ -3,14 +3,26 @@ local ns = SimpleBuffs
 
 local tokenGroup = {}
 local groupUnits = {}
+local containerUnits = {}
+
+local function get_standalone_container_key(groupKey)
+	local container = ns.UNIT_GROUP_CONTAINER[groupKey] or groupKey
+	if container == ns.CONTAINER_LABEL.ENEMY then
+		return ns.STANDALONE_CONTAINER_KEY.ENEMY
+	end
+	return groupKey
+end
 
 local function add_unit(units, unit, groupKey)
 	units[#units + 1] = unit
 	groupUnits[groupKey] = groupUnits[groupKey] or {}
 	groupUnits[groupKey][#groupUnits[groupKey] + 1] = unit
+	local containerKey = get_standalone_container_key(groupKey)
+	containerUnits[containerKey] = containerUnits[containerKey] or {}
+	containerUnits[containerKey][#containerUnits[containerKey] + 1] = unit
 	tokenGroup[unit] = groupKey
 	if not ns.UNIT_LABEL[unit] then
-		local number = unit:match("(%d+)$")
+		local number = unit:match(ns.PATTERN.UNIT_NUMBER_SUFFIX)
 		local prefix = number and unit:sub(1, #unit - #number) or unit
 		local groupLabel = ns.UNIT_GROUP_LABEL[groupKey] or prefix
 		ns.UNIT_LABEL[unit] = number and (groupLabel .. " " .. number) or groupLabel
@@ -21,6 +33,7 @@ local function build_static_units()
 	local units = {}
 	tokenGroup = {}
 	groupUnits = {}
+	containerUnits = {}
 	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
 		local definition = ns.UNIT_GROUP_DEFINITIONS[groupKey]
 		if definition.tokens then
@@ -48,7 +61,7 @@ function ns.GetUnitGroup(unit)
 		return groupKey
 	end
 
-	local prefix = unit:match("^([%a]+)%d+$")
+	local prefix = unit:match(ns.PATTERN.UNIT_PREFIX_WITH_NUMBER)
 	if prefix then
 		for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
 			local definition = ns.UNIT_GROUP_DEFINITIONS[groupKey]
@@ -63,11 +76,7 @@ function ns.GetUnitGroup(unit)
 end
 
 function ns.GetStandaloneContainerKey(groupKey)
-	local container = ns.UNIT_GROUP_CONTAINER[groupKey] or groupKey
-	if container == ns.CONTAINER_LABEL.ENEMY then
-		return ns.STANDALONE_CONTAINER_KEY.ENEMY
-	end
-	return groupKey
+	return get_standalone_container_key(groupKey)
 end
 
 function ns.IsTrackedUnit(unit)
@@ -82,6 +91,13 @@ end
 
 function ns.ForEachUnitInGroup(groupKey, callback)
 	local units = groupUnits[groupKey] or {}
+	for index = 1, #units do
+		callback(units[index])
+	end
+end
+
+function ns.ForEachUnitInStandaloneContainer(containerKey, callback)
+	local units = containerUnits[containerKey] or {}
 	for index = 1, #units do
 		callback(units[index])
 	end

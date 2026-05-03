@@ -1,6 +1,16 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
+local DEFAULT_STYLE = {
+	iconSize = 28,
+	spacing = 3,
+	maxAuras = 12,
+	scale = 1,
+	showCountdown = true,
+	showSwipe = true,
+	showCounts = true,
+}
+
 local function default_unit_options(attachedPosition)
 	return {
 		buff = true,
@@ -10,13 +20,13 @@ local function default_unit_options(attachedPosition)
 		layout = ns.LAYOUT.HORIZONTAL,
 		sortRule = ns.SORT_RULE.EXPIRATION,
 		filterMode = ns.FILTER_MODE.ALL,
-		iconSize = 28,
-		spacing = 3,
-		maxAuras = 12,
-		scale = 1,
-		showCountdown = true,
-		showSwipe = true,
-		showCounts = true,
+		iconSize = DEFAULT_STYLE.iconSize,
+		spacing = DEFAULT_STYLE.spacing,
+		maxAuras = DEFAULT_STYLE.maxAuras,
+		scale = DEFAULT_STYLE.scale,
+		showCountdown = DEFAULT_STYLE.showCountdown,
+		showSwipe = DEFAULT_STYLE.showSwipe,
+		showCounts = DEFAULT_STYLE.showCounts,
 	}
 end
 
@@ -37,17 +47,17 @@ ns.DEFAULTS = {
 		hide = false,
 	},
 	appearance = {
-		iconSize = 28,
-		spacing = 3,
+		iconSize = DEFAULT_STYLE.iconSize,
+		spacing = DEFAULT_STYLE.spacing,
 		rowSpacing = 5,
-		maxAuras = 12,
+		maxAuras = DEFAULT_STYLE.maxAuras,
 		layout = ns.LAYOUT.HORIZONTAL,
 		sortRule = ns.SORT_RULE.EXPIRATION,
 		filterMode = ns.FILTER_MODE.ALL,
-		showCountdown = true,
-		showSwipe = true,
-		showCounts = true,
-		scale = 1,
+		showCountdown = DEFAULT_STYLE.showCountdown,
+		showSwipe = DEFAULT_STYLE.showSwipe,
+		showCounts = DEFAULT_STYLE.showCounts,
+		scale = DEFAULT_STYLE.scale,
 	},
 	units = {
 		player = default_unit_options(),

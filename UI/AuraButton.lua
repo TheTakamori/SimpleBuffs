@@ -10,9 +10,6 @@ local function set_count_text(button, entry, appearance)
 		text = ns.TEXT.EMPTY
 	elseif entry.applicationDisplayCount then
 		text = entry.applicationDisplayCount
-	else
-		local applications = entry.aura and entry.aura.applications
-		text = applications or ns.TEXT.EMPTY
 	end
 	button.count:SetText(text)
 end
@@ -35,6 +32,10 @@ local function set_cooldown(button, entry, appearance)
 
 	-- Non-Midnight fallback for local testing on older clients.
 	local aura = entry.aura
+	if not aura then
+		button.cooldown:Clear()
+		return
+	end
 	local duration = aura.duration
 	local expirationTime = aura.expirationTime
 	if duration and expirationTime and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION then
@@ -180,9 +181,7 @@ function ns.ApplyAuraButton(button, entry, size, appearance)
 	local aura = entry.aura
 	apply_icon(button, aura)
 
-	if aura then
-		set_cooldown(button, entry, appearance)
-	end
+	set_cooldown(button, entry, appearance)
 	set_count_text(button, entry, appearance)
 	button:Show()
 end

@@ -1,14 +1,6 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
-local function print_line(message)
-	if DEFAULT_CHAT_FRAME then
-		DEFAULT_CHAT_FRAME:AddMessage(message)
-	else
-		print(message)
-	end
-end
-
 local function refresh()
 	if ns.RefreshAllDisplays then
 		ns.RefreshAllDisplays()
@@ -19,11 +11,11 @@ local function refresh()
 end
 
 local function show_help()
-	print_line(ns.TEXT.SLASH_HELP_TITLE)
-	print_line(ns.TEXT.SLASH_HELP_OPEN)
-	print_line(ns.TEXT.SLASH_HELP_LOCK)
-	print_line(ns.TEXT.SLASH_HELP_UNLOCK)
-	print_line(ns.TEXT.SLASH_HELP_RESET)
+	ns.PrintMessage(ns.TEXT.SLASH_HELP_TITLE)
+	ns.PrintMessage(ns.TEXT.SLASH_HELP_OPEN)
+	ns.PrintMessage(ns.TEXT.SLASH_HELP_LOCK)
+	ns.PrintMessage(ns.TEXT.SLASH_HELP_UNLOCK)
+	ns.PrintMessage(ns.TEXT.SLASH_HELP_RESET)
 end
 
 function ns.RegisterSlashCommands()
@@ -38,15 +30,15 @@ function ns.RegisterSlashCommands()
 		elseif command == ns.SLASH_COMMAND.LOCK then
 			ns.SetLocked(true)
 			refresh()
-			print_line(ns.TEXT.LOCKED)
+			ns.PrintMessage(ns.TEXT.LOCKED)
 		elseif command == ns.SLASH_COMMAND.UNLOCK then
 			ns.SetLocked(false)
 			refresh()
-			print_line(ns.TEXT.UNLOCKED)
+			ns.PrintMessage(ns.TEXT.UNLOCKED)
 		elseif command == ns.SLASH_COMMAND.RESET then
 			ns.ResetDB()
 			refresh()
-			print_line(ns.TEXT.RESET)
+			ns.PrintMessage(ns.TEXT.RESET)
 		elseif command == ns.SLASH_COMMAND.HELP then
 			show_help()
 		else

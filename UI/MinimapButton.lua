@@ -118,11 +118,7 @@ end
 
 local function print_lock_state(locked)
 	local message = locked and ns.TEXT.LOCKED or ns.TEXT.UNLOCKED
-	if DEFAULT_CHAT_FRAME then
-		DEFAULT_CHAT_FRAME:AddMessage(message)
-	else
-		print(message)
-	end
+	ns.PrintMessage(message)
 end
 
 function ns.EnsureMinimapButton()

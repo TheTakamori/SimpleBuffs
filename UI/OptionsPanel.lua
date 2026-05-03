@@ -106,12 +106,16 @@ local function build_panel()
 	buttonY = buttonY - ns.OPTIONS_LAYOUT.TAB_LOCK_BUTTON_GAP_Y
 	ns.RegisterOptionsChild(content, ns.CreateOptionsButton(content, ns.TEXT.OPTIONS_DISABLE_ALL, ns.OPTIONS_LAYOUT.TAB_SIDEBAR_X, buttonY, ns.OPTIONS_LAYOUT.TAB_BUTTON_WIDTH, function()
 		ns.SetAllUnitAurasEnabled(not ns.AreAllUnitAurasEnabled())
-	end, function(self)
-		self:SetText(ns.AreAllUnitAurasEnabled() and ns.TEXT.OPTIONS_DISABLE_ALL or ns.TEXT.OPTIONS_ENABLE_ALL)
-	end))
+	end, {
+		refresh = function(self)
+			self:SetText(ns.AreAllUnitAurasEnabled() and ns.TEXT.OPTIONS_DISABLE_ALL or ns.TEXT.OPTIONS_ENABLE_ALL)
+		end,
+	}))
 	ns.RegisterOptionsChild(content, ns.CreateOptionsButton(content, ns.TEXT.OPTIONS_RESET_DEFAULTS, ns.OPTIONS_LAYOUT.TAB_SIDEBAR_X, buttonY - ns.OPTIONS_LAYOUT.TAB_ACTION_BUTTON_GAP_Y, ns.OPTIONS_LAYOUT.TAB_BUTTON_WIDTH, function()
 		confirm_reset_defaults(frame)
-	end, nil, false))
+	end, {
+		refreshDisplays = false,
+	}))
 	function frame:RefreshFromDB()
 		content.ignoreCallbacks = true
 		for _, tab in ipairs(content.tabs or {}) do

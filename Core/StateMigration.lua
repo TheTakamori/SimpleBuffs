@@ -1,5 +1,6 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
+local GLOBAL_SETTINGS_MIGRATION_VERSION = 5
 
 local function copy_table(source, target)
 	target = target or {}
@@ -172,8 +173,8 @@ local function capture_raw_unit_options(units)
 	return snapshot
 end
 
-local function legacy_boolean_migration(previousVersion, value)
-	if previousVersion < ns.DB_VERSION and type(value) == ns.LUA_TYPE.BOOLEAN then
+local function legacy_boolean_migration(shouldMigrate, value)
+	if shouldMigrate and type(value) == ns.LUA_TYPE.BOOLEAN then
 		return value
 	end
 	return nil
@@ -182,20 +183,21 @@ end
 function ns.InitDB()
 	local existing = SimpleBuffsDB or {}
 	local previousVersion = tonumber(existing.version) or ns.NUMBER.ZERO
+	local migrateGlobalSettings = previousVersion < GLOBAL_SETTINGS_MIGRATION_VERSION
 	local existingAppearance = type(existing.appearance) == ns.LUA_TYPE.TABLE and existing.appearance or {}
 	local rawUnits = capture_raw_unit_options(existing.units)
 	local migrations = {
-		mode = previousVersion < ns.DB_VERSION and contains(ns.DISPLAY_MODE_ORDER, existing.displayMode) and existing.displayMode or nil,
-		layout = previousVersion < ns.DB_VERSION and contains(ns.LAYOUT_ORDER, existingAppearance.layout) and existingAppearance.layout or nil,
-		sortRule = previousVersion < ns.DB_VERSION and contains(ns.SORT_RULE_ORDER, existingAppearance.sortRule) and existingAppearance.sortRule or nil,
-		filterMode = previousVersion < ns.DB_VERSION and contains(ns.FILTER_MODE_ORDER, existingAppearance.filterMode) and existingAppearance.filterMode or nil,
-		iconSize = previousVersion < ns.DB_VERSION and existingAppearance.iconSize or nil,
-		spacing = previousVersion < ns.DB_VERSION and existingAppearance.spacing or nil,
-		maxAuras = previousVersion < ns.DB_VERSION and existingAppearance.maxAuras or nil,
-		scale = previousVersion < ns.DB_VERSION and existingAppearance.scale or nil,
-		showCountdown = legacy_boolean_migration(previousVersion, existingAppearance.showCountdown),
-		showSwipe = legacy_boolean_migration(previousVersion, existingAppearance.showSwipe),
-		showCounts = legacy_boolean_migration(previousVersion, existingAppearance.showCounts),
+		mode = migrateGlobalSettings and contains(ns.DISPLAY_MODE_ORDER, existing.displayMode) and existing.displayMode or nil,
+		layout = migrateGlobalSettings and contains(ns.LAYOUT_ORDER, existingAppearance.layout) and existingAppearance.layout or nil,
+		sortRule = migrateGlobalSettings and contains(ns.SORT_RULE_ORDER, existingAppearance.sortRule) and existingAppearance.sortRule or nil,
+		filterMode = migrateGlobalSettings and contains(ns.FILTER_MODE_ORDER, existingAppearance.filterMode) and existingAppearance.filterMode or nil,
+		iconSize = migrateGlobalSettings and existingAppearance.iconSize or nil,
+		spacing = migrateGlobalSettings and existingAppearance.spacing or nil,
+		maxAuras = migrateGlobalSettings and existingAppearance.maxAuras or nil,
+		scale = migrateGlobalSettings and existingAppearance.scale or nil,
+		showCountdown = legacy_boolean_migration(migrateGlobalSettings, existingAppearance.showCountdown),
+		showSwipe = legacy_boolean_migration(migrateGlobalSettings, existingAppearance.showSwipe),
+		showCounts = legacy_boolean_migration(migrateGlobalSettings, existingAppearance.showCounts),
 		rawUnits = rawUnits,
 	}
 	SimpleBuffsDB = copy_table(ns.DEFAULTS, existing)

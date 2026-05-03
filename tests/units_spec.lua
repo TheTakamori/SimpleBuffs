@@ -41,6 +41,18 @@ return function(runner, ns)
 		assert.equal(units[5], "arena5")
 	end)
 
+	runner:test("unit registry iterates units by standalone container", function()
+		local units = {}
+		ns.ForEachUnitInStandaloneContainer(ns.STANDALONE_CONTAINER_KEY.ENEMY, function(unit)
+			units[#units + 1] = unit
+		end)
+
+		assert.equal(#units, 18)
+		assert.equal(units[1], "boss1")
+		assert.equal(units[9], "arena1")
+		assert.equal(units[18], "arenapet5")
+	end)
+
 	runner:test("attached anchors resolve confirmed Blizzard frame paths", function()
 		local partyFrame = make_frame("party1")
 		local raidFrame = make_frame("raid14")
