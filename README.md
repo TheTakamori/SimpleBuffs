@@ -5,7 +5,7 @@ configurable displays. It is built for World of Warcraft Retail
 `12.0.5 (Midnight)` and uses Blizzard cooldown widgets for countdown text so
 the UI can display aura timers without custom combat-state calculations.
 
-Current version: `1.0.0`.
+Current version: `1.1.0`.
 
 ## Features
 
@@ -18,6 +18,8 @@ Current version: `1.0.0`.
   Unlocked standalone displays move with Shift-drag.
 - Provides per-unit-group icon size, spacing, max aura count, scale, countdown
   text, cooldown swipe, stack counts, and quick enable/disable controls.
+- Lets users copy settings from one unit tab to another with a Copy From
+  dropdown.
 - Lets users lock or unlock standalone display movement from the options panel
   or minimap button.
 - Uses event-driven aura updates instead of constant polling.

@@ -37,6 +37,10 @@ return function(runner, ns)
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()
 		local attachedColumn = find_column(ns, nil)
+		assert.equal(attachedColumn ~= nil, true)
+		if not attachedColumn then
+			return
+		end
 
 		assert.equal(attachedColumn.hideLabel, true)
 		assert.equal(attachedColumn.sameRowAsPrevious, true)
@@ -49,5 +53,13 @@ return function(runner, ns)
 
 		ns.SetUnitGroupDisplayMode(ns.UNIT_GROUP.PLAYER, ns.DISPLAY_MODE.BOTH)
 		assert.equal(attachedColumn.showWhen(ns.UNIT_GROUP.PLAYER), true)
+	end)
+
+	runner:test("Copy From values include other unit groups only", function()
+		local values = ns.GetCopyFromUnitGroupValues(ns.UNIT_GROUP.PLAYER)
+
+		assert.equal(ns.IsKnownValue(values, ns.UNIT_GROUP.PLAYER), false)
+		assert.equal(ns.IsKnownValue(values, ns.UNIT_GROUP.PET), true)
+		assert.equal(#values, #ns.UNIT_GROUP_ORDER - 1)
 	end)
 end

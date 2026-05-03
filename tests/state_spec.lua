@@ -187,6 +187,35 @@ return function(runner, ns)
 		assert.equal(ns.ResetUnitGroupOptions("unknown"), false)
 	end)
 
+	runner:test("CopyUnitGroupOptions copies source settings onto target group", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		ns.SetUnitGroupDisplayMode(ns.UNIT_GROUP.PLAYER, ns.DISPLAY_MODE.BOTH)
+		ns.SetUnitGroupAttachedPosition(ns.UNIT_GROUP.PLAYER, ns.ATTACHED_POSITION.LEFT)
+		ns.SetUnitGroupLayout(ns.UNIT_GROUP.PLAYER, ns.LAYOUT.VERTICAL)
+		ns.SetUnitGroupSortRule(ns.UNIT_GROUP.PLAYER, ns.SORT_RULE.EXPIRATION_ONLY)
+		ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PLAYER, ns.FILTER_MODE.PLAYER)
+		ns.SetUnitGroupAuraEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PLAYER, ns.DB_KEY.ICON_SIZE, ns.LIMITS.ICON_SIZE_MAX)
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PLAYER, ns.DB_KEY.SHOW_COUNTS, false)
+		ns.GetUnitGroupOptions(ns.UNIT_GROUP.PET).staleSetting = true
+
+		assert.equal(ns.CopyUnitGroupOptions(ns.UNIT_GROUP.PLAYER, ns.UNIT_GROUP.PET), true)
+
+		assert.equal(ns.GetUnitGroupDisplayMode(ns.UNIT_GROUP.PET), ns.DISPLAY_MODE.BOTH)
+		assert.equal(ns.GetUnitGroupAttachedPosition(ns.UNIT_GROUP.PET), ns.ATTACHED_POSITION.LEFT)
+		assert.equal(ns.GetUnitGroupLayout(ns.UNIT_GROUP.PET), ns.LAYOUT.VERTICAL)
+		assert.equal(ns.GetUnitGroupSortRule(ns.UNIT_GROUP.PET), ns.SORT_RULE.EXPIRATION_ONLY)
+		assert.equal(ns.GetUnitGroupFilterMode(ns.UNIT_GROUP.PET), ns.FILTER_MODE.PLAYER)
+		assert.equal(ns.GetUnitGroupOptions(ns.UNIT_GROUP.PET).buff, false)
+		assert.equal(ns.GetUnitGroupOptions(ns.UNIT_GROUP.PET).staleSetting, nil)
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET).iconSize, ns.LIMITS.ICON_SIZE_MAX)
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET).showCounts, false)
+		assert.equal(ns.CopyUnitGroupOptions(ns.UNIT_GROUP.PLAYER, ns.UNIT_GROUP.PLAYER), false)
+		assert.equal(ns.CopyUnitGroupOptions("unknown", ns.UNIT_GROUP.PLAYER), false)
+	end)
+
 	runner:test("standalone dragging requires unlocked state and Shift", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()

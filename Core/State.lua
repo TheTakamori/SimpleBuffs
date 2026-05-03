@@ -171,6 +171,16 @@ local function apply_appearance_value(target, key, value, fallback, allowGlobalO
 	return true
 end
 
+local function copy_unit_group_options(source, target)
+	for key in pairs(target or {}) do
+		target[key] = nil
+	end
+	for key, value in pairs(source or {}) do
+		target[key] = value
+	end
+	return target
+end
+
 function ns.SetAppearanceValue(key, value)
 	return apply_appearance_value(ns.GetAppearance(), key, value, ns.DEFAULTS.appearance, true)
 end
@@ -194,6 +204,23 @@ end
 
 function ns.SetUnitAuraEnabled(unit, auraType, enabled)
 	return ns.SetUnitGroupAuraEnabled(ns.GetUnitGroup(unit) or unit, auraType, enabled)
+end
+
+function ns.CopyUnitGroupOptions(sourceGroupKey, targetGroupKey)
+	if sourceGroupKey == targetGroupKey then
+		return false
+	end
+	local source = ns.GetUnitGroupOptions(sourceGroupKey)
+	local target = ns.GetUnitGroupOptions(targetGroupKey)
+	if not source or not target then
+		return false
+	end
+
+	copy_unit_group_options(source, target)
+	if not ns.IsKnownValue(ns.GetUnitGroupDisplayModes(targetGroupKey), target.mode) then
+		target.mode = ns.DEFAULTS.units[targetGroupKey].mode
+	end
+	return true
 end
 
 function ns.SetAllUnitAurasEnabled(enabled)

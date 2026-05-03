@@ -1,11 +1,23 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
+local copyFromSelections = {}
+
 local function register_tab_child(tab, child)
 	if not child then
 		return nil
 	end
 	return ns.RegisterOptionsChild(tab, child)
+end
+
+local function get_copy_from_selection(groupKey)
+	local values = ns.GetCopyFromUnitGroupValues(groupKey)
+	local selection = copyFromSelections[groupKey]
+	if not ns.IsKnownValue(values, selection) then
+		selection = values[1]
+		copyFromSelections[groupKey] = selection
+	end
+	return selection
 end
 
 local function create_standalone_move_hint(parent, groupKey, x, y)
@@ -27,16 +39,51 @@ local function create_unit_reset_button(tab, groupKey, panelState, y)
 		if panelState.frame then
 			panelState.frame:RefreshFromDB()
 		end
-	end, nil, false)
+	end, nil, false, ns.TEXT.OPTIONS_TOOLTIP_RESET_UNIT_DEFAULTS)
 	resetUnitButton:ClearAllPoints()
 	resetUnitButton:SetPoint(ns.UI.ANCHOR_TOPRIGHT, tab, ns.UI.ANCHOR_TOPRIGHT, ns.OPTIONS_LAYOUT.TAB_RESET_BUTTON_RIGHT_X, y)
 	return resetUnitButton
 end
 
+local function create_copy_from_row(tab, groupKey, panelState, y)
+	local label = ns.CreateOptionsRowLabel(tab, ns.TEXT.OPTIONS_COPY_FROM, ns.NUMBER.ZERO, y)
+	register_tab_child(tab, label)
+	register_tab_child(tab, ns.CreateOptionsTooltipRegion(tab, ns.NUMBER.ZERO, y, ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X, ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_HEIGHT, ns.TEXT.OPTIONS_TOOLTIP_COPY_FROM))
+
+	register_tab_child(tab, ns.CreateOptionsDropdownOnRow(
+		tab,
+		ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X,
+		y,
+		ns.OPTIONS_LAYOUT.TAB_DROPDOWN_WIDTH,
+		ns.GetCopyFromUnitGroupValues(groupKey),
+		function()
+			return get_copy_from_selection(groupKey)
+		end,
+		function(value)
+			copyFromSelections[groupKey] = value
+		end,
+		ns.UNIT_GROUP_LABEL,
+		ns.TEXT.OPTIONS_TOOLTIP_COPY_FROM
+	))
+
+	local copyButton = ns.CreateOptionsButton(tab, ns.TEXT.OPTIONS_COPY, ns.OPTIONS_LAYOUT.TAB_COPY_BUTTON_X, y, ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_WIDTH, function()
+		local sourceGroupKey = get_copy_from_selection(groupKey)
+		if ns.CopyUnitGroupOptions(sourceGroupKey, groupKey) then
+			ns.RefreshOptionsDisplays()
+			if panelState.frame then
+				panelState.frame:RefreshFromDB()
+			end
+		end
+	end, nil, false, ns.TEXT.OPTIONS_TOOLTIP_COPY)
+	copyButton:ClearAllPoints()
+	copyButton:SetPoint(ns.UI.ANCHOR_LEFT, tab, ns.UI.ANCHOR_TOPLEFT, ns.OPTIONS_LAYOUT.TAB_COPY_BUTTON_X, y)
+	register_tab_child(tab, copyButton)
+end
+
 local function create_dropdown_row(tab, groupKey, column, y)
 	local rowY = column.sameRowAsPrevious and y + ns.OPTIONS_LAYOUT.TAB_ROW_GAP_Y or y
 	if not column.hideLabel then
-		local label = ns.CreateOptionsLabelAt(tab, column.header, ns.NUMBER.ZERO, rowY)
+		local label = ns.CreateOptionsRowLabel(tab, column.header, ns.NUMBER.ZERO, rowY)
 		local labelHover = ns.CreateOptionsTooltipRegion(tab, ns.NUMBER.ZERO, rowY, ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X, ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_HEIGHT, column.tooltip)
 		if column.showWhen then
 			label.RefreshFromDB = function(self)
@@ -157,6 +204,8 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 		end, ns.NUMBER.ZERO, check.refresh))
 		y = y - ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y
 	end
+
+	create_copy_from_row(tab, groupKey, panelState, ns.OPTIONS_LAYOUT.TAB_COPY_ROW_Y)
 
 	tab.RefreshFromDB = function(self)
 		self:SetShown(panelState.selectedGroup == groupKey)

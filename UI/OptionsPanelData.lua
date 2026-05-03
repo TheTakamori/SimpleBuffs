@@ -1,6 +1,23 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
+local copyFromUnitGroupValues = {}
+
+function ns.GetCopyFromUnitGroupValues(groupKey)
+	local values = copyFromUnitGroupValues[groupKey] or {}
+	copyFromUnitGroupValues[groupKey] = values
+
+	for index = #values, 1, -1 do
+		values[index] = nil
+	end
+	for _, otherGroupKey in ipairs(ns.UNIT_GROUP_ORDER) do
+		if otherGroupKey ~= groupKey then
+			values[#values + 1] = otherGroupKey
+		end
+	end
+	return values
+end
+
 ns.OPTIONS_UNIT_DROPDOWN_COLUMNS = {
 	{
 		header = ns.TEXT.OPTIONS_MODE,

@@ -177,7 +177,7 @@ function ns.CreateOptionsDropdownOnRow(parent, x, y, width, values, getter, sett
 	return dropdown
 end
 
-function ns.CreateOptionsButton(parent, text, x, y, width, onClick, refresh, refreshDisplays)
+function ns.CreateOptionsButton(parent, text, x, y, width, onClick, refresh, refreshDisplays, tooltip)
 	local button = CreateFrame(ns.UI.BUTTON, nil, parent, ns.UI.UIPANEL_BUTTON_TEMPLATE)
 	button:SetSize(width or ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_WIDTH, ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_HEIGHT)
 	button:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
@@ -193,6 +193,7 @@ function ns.CreateOptionsButton(parent, text, x, y, width, onClick, refresh, ref
 	if refresh then
 		button.RefreshFromDB = refresh
 	end
+	add_tooltip(button, tooltip)
 	return button
 end
 
