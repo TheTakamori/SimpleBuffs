@@ -9,6 +9,8 @@ local function get_or_create_row(frame, auraType)
 
 	local row = CreateFrame(ns.UI.FRAME, nil, frame)
 	row.buttons = {}
+	row.freeButtons = {}
+	row.activeKeys = {}
 	frame.rows[auraType] = row
 	return row
 end
@@ -36,36 +38,43 @@ local function layout_size(count, size, spacing, layout)
 	return count * size + math.max(ns.NUMBER.ZERO, count - ns.LAYOUT_METRIC.INDEX_OFFSET) * spacing, size
 end
 
-function ns.UpdateAuraDisplayRow(row, model, appearance)
+function ns.UpdateAuraDisplayRow(row, model, appearance, layout)
 	local entries = (model and model.rows) or {}
 	local size = appearance.iconSize
 	local spacing = appearance.spacing
-	local layout = appearance.layout
+	layout = layout or ns.DEFAULTS.appearance.layout
 	local width, height = layout_size(#entries, size, spacing, layout)
 
 	row:SetSize(width, height)
 
-	for _, button in pairs(row.buttons) do
-		button.unused = true
+	for key in pairs(row.activeKeys) do
+		row.activeKeys[key] = nil
+	end
+	for index = 1, #entries do
+		row.activeKeys[entries[index].key] = true
+	end
+
+	for key, button in pairs(row.buttons) do
+		if not row.activeKeys[key] then
+			row.buttons[key] = nil
+			button:Hide()
+			button.entry = nil
+			button.entryKey = nil
+			button.unit = nil
+			button.auraType = nil
+			row.freeButtons[#row.freeButtons + 1] = button
+		end
 	end
 
 	for index = 1, #entries do
 		local entry = entries[index]
 		local button = row.buttons[entry.key]
 		if not button then
-			button = ns.CreateAuraButton(row)
+			button = table.remove(row.freeButtons) or ns.CreateAuraButton(row)
 			row.buttons[entry.key] = button
 		end
-		button.unused = nil
 		ns.ApplyAuraButton(button, entry, size, appearance)
 		position_button(button, row, index, size, spacing, layout)
-	end
-
-	for _, button in pairs(row.buttons) do
-		if button.unused then
-			button:Hide()
-			button.unused = nil
-		end
 	end
 
 	row:SetShown(#entries > 0)
@@ -74,6 +83,7 @@ end
 
 function ns.UpdateAuraDisplayFrame(frame, model)
 	local appearance = ns.GetAppearance()
+	local layout = ns.GetUnitLayout(frame.unit)
 	local y = ns.LAYOUT_METRIC.ORIGIN_Y
 	local maxWidth = ns.LAYOUT_METRIC.MIN_SIZE
 	local totalHeight = ns.LAYOUT_METRIC.ORIGIN_Y
@@ -83,7 +93,7 @@ function ns.UpdateAuraDisplayFrame(frame, model)
 
 	for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
 		local row = get_or_create_row(frame, auraType)
-		local width, height = ns.UpdateAuraDisplayRow(row, model and model[auraType], appearance)
+		local width, height = ns.UpdateAuraDisplayRow(row, model and model[auraType], appearance, layout)
 		row:ClearAllPoints()
 		row:SetPoint(ns.UI.ANCHOR_TOPLEFT, frame, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
 		if row:IsShown() then

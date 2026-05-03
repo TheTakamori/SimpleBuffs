@@ -32,10 +32,8 @@ local function refresh_unit(unit, skipLayout)
 end
 
 local function refresh_group(groupKey)
-	ns.ForEachConfiguredUnit(function(unit)
-		if ns.GetUnitGroup(unit) == groupKey then
-			refresh_unit(unit, true)
-		end
+	ns.ForEachUnitInGroup(groupKey, function(unit)
+		refresh_unit(unit, true)
 	end)
 	if ns.LayoutStandaloneContainers then
 		ns.LayoutStandaloneContainers()
@@ -46,10 +44,8 @@ local function refresh_groups(...)
 	local groups = { ... }
 	for index = 1, #groups do
 		local groupKey = groups[index]
-		ns.ForEachConfiguredUnit(function(unit)
-			if ns.GetUnitGroup(unit) == groupKey then
-				refresh_unit(unit, true)
-			end
+		ns.ForEachUnitInGroup(groupKey, function(unit)
+			refresh_unit(unit, true)
 		end)
 	end
 	if ns.LayoutStandaloneContainers then

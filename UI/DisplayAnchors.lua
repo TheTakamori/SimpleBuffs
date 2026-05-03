@@ -14,6 +14,9 @@ local PARTY_CONTAINER_ATTACHED_POSITION = {
 	x = ns.ATTACHED_LAYOUT.PARTY_CONTAINER_X,
 	y = ns.ATTACHED_LAYOUT.PARTY_CONTAINER_Y,
 }
+local anchorCache = nil
+local anchorPositionCache = nil
+local CACHE_MISS = false
 
 local function get_frame_unit(frame)
 	if not frame then
@@ -51,6 +54,20 @@ local function frame_is_visible(frame)
 	return true
 end
 
+local function find_child_match(unit, ...)
+	local fallback = nil
+	for index = 1, select("#", ...) do
+		local child = select(index, ...)
+		if frame_matches_unit(child, unit) then
+			if frame_is_visible(child) then
+				return child
+			end
+			fallback = fallback or child
+		end
+	end
+	return fallback
+end
+
 local function find_member_frame(container, unit)
 	if not container then
 		return nil
@@ -70,16 +87,7 @@ local function find_member_frame(container, unit)
 	end
 
 	if container.GetChildren then
-		local children = { container:GetChildren() }
-		for index = 1, #children do
-			local child = children[index]
-			if frame_matches_unit(child, unit) then
-				if frame_is_visible(child) then
-					return child
-				end
-				fallback = fallback or child
-			end
-		end
+		return find_child_match(unit, container:GetChildren()) or fallback
 	end
 
 	return fallback
@@ -88,6 +96,7 @@ end
 local function get_party_anchor(unit, partyIndex)
 	local partyFrame = _G[ns.BLIZZARD_FRAME.PARTY_FRAME]
 	local compactPartyFrame = _G[ns.BLIZZARD_FRAME.COMPACT_PARTY_FRAME]
+	local compactRaidFrameContainer = _G[ns.BLIZZARD_FRAME.COMPACT_RAID_FRAME_CONTAINER]
 	local directAnchors = {
 		_G[ns.BLIZZARD_FRAME.COMPACT_PARTY_FRAME_MEMBER_PREFIX .. partyIndex],
 		_G[ns.BLIZZARD_FRAME.PARTY_MEMBER_FRAME_PREFIX .. partyIndex],
@@ -105,6 +114,7 @@ local function get_party_anchor(unit, partyIndex)
 	end
 
 	local memberAnchor = find_member_frame(compactPartyFrame, unit)
+		or find_member_frame(compactRaidFrameContainer, unit)
 		or find_member_frame(partyFrame, unit)
 	if memberAnchor then
 		return memberAnchor, nil
@@ -124,7 +134,56 @@ local function get_party_anchor(unit, partyIndex)
 	return nil, nil
 end
 
-function ns.GetAttachedDisplayAnchor(unit)
+local function get_party_pet_anchor(unit, partyIndex)
+	local compactRaidFrameContainer = _G[ns.BLIZZARD_FRAME.COMPACT_RAID_FRAME_CONTAINER]
+	local directAnchors = {
+		_G[ns.BLIZZARD_FRAME.PARTY_MEMBER_FRAME_PREFIX .. partyIndex .. ns.BLIZZARD_FRAME.PARTY_MEMBER_PET_FRAME_SUFFIX],
+	}
+	for index = 1, #directAnchors do
+		local directAnchor = directAnchors[index]
+		if directAnchor and frame_is_visible(directAnchor) then
+			local frameUnit = get_frame_unit(directAnchor)
+			if not frameUnit or frameUnit == unit then
+				return directAnchor, nil
+			end
+		end
+	end
+
+	return find_member_frame(compactRaidFrameContainer, unit), nil
+end
+
+local function get_compact_raid_anchor(unit)
+	return find_member_frame(_G[ns.BLIZZARD_FRAME.COMPACT_RAID_FRAME_CONTAINER], unit), nil
+end
+
+local function get_direct_indexed_anchor(prefix, suffix, unit, index)
+	local directAnchor = _G[prefix .. index .. (suffix or ns.TEXT.EMPTY)]
+	if directAnchor and frame_is_visible(directAnchor) then
+		local frameUnit = get_frame_unit(directAnchor)
+		if not frameUnit or frameUnit == unit then
+			return directAnchor, nil
+		end
+	end
+	return nil, nil
+end
+
+local function get_arena_anchor(unit, arenaIndex)
+	local anchor = get_direct_indexed_anchor(ns.BLIZZARD_FRAME.ARENA_ENEMY_MATCH_FRAME_PREFIX, nil, unit, arenaIndex)
+	if anchor then
+		return anchor, nil
+	end
+	return get_direct_indexed_anchor(ns.BLIZZARD_FRAME.ARENA_ENEMY_FRAME_PREFIX, nil, unit, arenaIndex)
+end
+
+local function get_arena_pet_anchor(unit, arenaIndex)
+	local anchor = get_direct_indexed_anchor(ns.BLIZZARD_FRAME.ARENA_ENEMY_MATCH_FRAME_PREFIX, ns.BLIZZARD_FRAME.ARENA_ENEMY_PET_FRAME_SUFFIX, unit, arenaIndex)
+	if anchor then
+		return anchor, nil
+	end
+	return get_direct_indexed_anchor(ns.BLIZZARD_FRAME.ARENA_ENEMY_FRAME_PREFIX, ns.BLIZZARD_FRAME.ARENA_ENEMY_PET_FRAME_SUFFIX, unit, arenaIndex)
+end
+
+local function resolve_attached_display_anchor(unit)
 	if unit == ns.UNIT_TOKEN.PLAYER then
 		return _G[ns.BLIZZARD_FRAME.PLAYER_FRAME]
 	elseif unit == ns.UNIT_TOKEN.TARGET then
@@ -139,8 +198,60 @@ function ns.GetAttachedDisplayAnchor(unit)
 	if partyIndex then
 		return get_party_anchor(unit, partyIndex)
 	end
+	local partyPetIndex = unit:match(ns.PATTERN.PARTY_PET_UNIT)
+	if partyPetIndex then
+		return get_party_pet_anchor(unit, partyPetIndex)
+	end
+	local raidIndex = unit:match(ns.PATTERN.RAID_UNIT)
+	if raidIndex then
+		return get_compact_raid_anchor(unit)
+	end
+	local raidPetIndex = unit:match(ns.PATTERN.RAID_PET_UNIT)
+	if raidPetIndex then
+		return get_compact_raid_anchor(unit)
+	end
+	local bossIndex = unit:match(ns.PATTERN.BOSS_UNIT)
+	if bossIndex then
+		return get_direct_indexed_anchor(ns.BLIZZARD_FRAME.BOSS_TARGET_FRAME_PREFIX, ns.BLIZZARD_FRAME.BOSS_TARGET_FRAME_SUFFIX, unit, bossIndex)
+	end
+	local arenaIndex = unit:match(ns.PATTERN.ARENA_UNIT)
+	if arenaIndex then
+		return get_arena_anchor(unit, arenaIndex)
+	end
+	local arenaPetIndex = unit:match(ns.PATTERN.ARENA_PET_UNIT)
+	if arenaPetIndex then
+		return get_arena_pet_anchor(unit, arenaPetIndex)
+	end
 
 	return nil
+end
+
+function ns.BeginAttachedAnchorCache()
+	anchorCache = anchorCache or {}
+	anchorPositionCache = anchorPositionCache or {}
+	for unit in pairs(anchorCache) do
+		anchorCache[unit] = nil
+		anchorPositionCache[unit] = nil
+	end
+end
+
+function ns.EndAttachedAnchorCache()
+	anchorCache = nil
+	anchorPositionCache = nil
+end
+
+function ns.GetAttachedDisplayAnchor(unit)
+	if anchorCache and anchorCache[unit] ~= nil then
+		local anchor = anchorCache[unit]
+		return anchor ~= CACHE_MISS and anchor or nil, anchorPositionCache[unit]
+	end
+
+	local anchor, position = resolve_attached_display_anchor(unit)
+	if anchorCache then
+		anchorCache[unit] = anchor or CACHE_MISS
+		anchorPositionCache[unit] = position
+	end
+	return anchor, position
 end
 
 function ns.GetDefaultAttachedPosition()

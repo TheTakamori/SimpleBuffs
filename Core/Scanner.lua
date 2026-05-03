@@ -9,27 +9,27 @@ local function get_enum_value(enumTable, key)
 	return key
 end
 
-local function build_filter(auraType)
+local function build_filter(unit, auraType)
 	local baseFilter = ns.AURA_FILTER[auraType]
-	local mode = ns.GetAppearance().filterMode
+	local mode = ns.GetUnitFilterMode(unit)
 	if mode == ns.FILTER_MODE.PLAYER then
-		return baseFilter .. "|PLAYER"
+		return baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.PLAYER
 	elseif mode == ns.FILTER_MODE.IMPORTANT then
-		return baseFilter .. "|IMPORTANT"
+		return baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.IMPORTANT
 	elseif mode == ns.FILTER_MODE.CROWD_CONTROL then
-		return baseFilter .. "|CROWD_CONTROL"
+		return baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.CROWD_CONTROL
 	end
 	return baseFilter
 end
 
-local function get_sort_rule()
+local function get_sort_rule(unit)
 	local enumTable = Enum and Enum.UnitAuraSortRule
-	return get_enum_value(enumTable, ns.GetAppearance().sortRule)
+	return get_enum_value(enumTable, ns.GetUnitSortRule(unit))
 end
 
 local function get_sort_direction()
 	local enumTable = Enum and Enum.UnitAuraSortDirection
-	return get_enum_value(enumTable, "Normal")
+	return get_enum_value(enumTable, ns.AURA_SORT_DIRECTION.NORMAL)
 end
 
 local function unit_exists(unit)
@@ -39,25 +39,38 @@ local function unit_exists(unit)
 	return true
 end
 
+local function build_scan_row(unit, auraType, auraInstanceID, aura)
+	local row = {
+		unit = unit,
+		auraType = auraType,
+		auraInstanceID = auraInstanceID,
+		aura = aura,
+	}
+	if C_UnitAuras and auraInstanceID then
+		if C_UnitAuras.GetAuraApplicationDisplayCount then
+			row.applicationDisplayCount = C_UnitAuras.GetAuraApplicationDisplayCount(unit, auraInstanceID, ns.AURA_BUTTON.COUNT_MIN, ns.AURA_BUTTON.COUNT_MAX)
+		end
+		if C_UnitAuras.GetAuraDuration then
+			row.durationObject = C_UnitAuras.GetAuraDuration(unit, auraInstanceID)
+		end
+	end
+	return row
+end
+
 local function scan_with_instance_ids(unit, auraType)
 	if not C_UnitAuras or not C_UnitAuras.GetUnitAuraInstanceIDs then
 		return nil
 	end
 
 	local maxCount = ns.GetAppearance().maxAuras
-	local filter = build_filter(auraType)
-	local instanceIDs = C_UnitAuras.GetUnitAuraInstanceIDs(unit, filter, maxCount, get_sort_rule(), get_sort_direction())
+	local filter = build_filter(unit, auraType)
+	local instanceIDs = C_UnitAuras.GetUnitAuraInstanceIDs(unit, filter, maxCount, get_sort_rule(unit), get_sort_direction())
 	local results = {}
 	for index = 1, #(instanceIDs or {}) do
 		local auraInstanceID = instanceIDs[index]
 		local aura = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
 		if aura then
-			results[#results + 1] = {
-				unit = unit,
-				auraType = auraType,
-				auraInstanceID = auraInstanceID,
-				aura = aura,
-			}
+			results[#results + 1] = build_scan_row(unit, auraType, auraInstanceID, aura)
 		end
 	end
 	return results
@@ -69,18 +82,13 @@ local function scan_with_unit_auras(unit, auraType)
 	end
 
 	local maxCount = ns.GetAppearance().maxAuras
-	local filter = build_filter(auraType)
-	local auras = C_UnitAuras.GetUnitAuras(unit, filter, maxCount, get_sort_rule(), get_sort_direction())
+	local filter = build_filter(unit, auraType)
+	local auras = C_UnitAuras.GetUnitAuras(unit, filter, maxCount, get_sort_rule(unit), get_sort_direction())
 	local results = {}
 	for index = 1, #(auras or {}) do
 		local aura = auras[index]
 		if aura then
-			results[#results + 1] = {
-				unit = unit,
-				auraType = auraType,
-				auraInstanceID = aura.auraInstanceID,
-				aura = aura,
-			}
+			results[#results + 1] = build_scan_row(unit, auraType, aura.auraInstanceID, aura)
 		end
 	end
 	return results
@@ -99,19 +107,14 @@ local function scan_with_index(unit, auraType)
 	end
 
 	local maxCount = ns.GetAppearance().maxAuras
-	local filter = build_filter(auraType)
+	local filter = build_filter(unit, auraType)
 	local results = {}
 	for index = 1, maxCount do
 		local aura = getter(unit, index, filter)
 		if not aura then
 			break
 		end
-		results[#results + 1] = {
-			unit = unit,
-			auraType = auraType,
-			auraInstanceID = aura.auraInstanceID,
-			aura = aura,
-		}
+		results[#results + 1] = build_scan_row(unit, auraType, aura.auraInstanceID, aura)
 	end
 	return results
 end

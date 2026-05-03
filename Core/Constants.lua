@@ -2,11 +2,20 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.ADDON_NAME = "SimpleBuffs"
-ns.VERSION = "0.0.5"
-ns.DB_VERSION = 1
+ns.VERSION = "0.1.0"
+ns.DB_VERSION = 3
 
 ns.SLASH_COMMANDS = {
 	"/sbuff",
+}
+
+ns.SLASH_COMMAND = {
+	OPTIONS = "options",
+	CONFIG = "config",
+	LOCK = "lock",
+	UNLOCK = "unlock",
+	RESET = "reset",
+	HELP = "help",
 }
 
 ns.AURA_TYPE = {
@@ -39,6 +48,10 @@ ns.DISPLAY_MODE_ORDER = {
 	ns.DISPLAY_MODE.ATTACHED,
 	ns.DISPLAY_MODE.STANDALONE,
 	ns.DISPLAY_MODE.BOTH,
+}
+
+ns.STANDALONE_DISPLAY_MODE_ORDER = {
+	ns.DISPLAY_MODE.STANDALONE,
 }
 
 ns.DISPLAY_MODE_LABEL = {

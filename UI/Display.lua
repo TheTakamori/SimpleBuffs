@@ -17,9 +17,24 @@ local function unit_exists(unit)
 	return true
 end
 
-local function mode_is_visible(mode)
-	local current = ns.GetDisplayMode()
-	return current == mode or current == ns.DISPLAY_MODE.BOTH
+local function raise_attached_frame(frame, anchor)
+	if not frame or not anchor then
+		return
+	end
+
+	if frame.SetFrameStrata and anchor.GetFrameStrata then
+		local ok, strata = pcall(anchor.GetFrameStrata, anchor)
+		if ok and strata then
+			frame:SetFrameStrata(strata)
+		end
+	end
+
+	if frame.SetFrameLevel and anchor.GetFrameLevel then
+		local ok, level = pcall(anchor.GetFrameLevel, anchor)
+		if ok and level then
+			frame:SetFrameLevel(level + ns.DISPLAY_FRAME.ATTACHED_FRAME_LEVEL_OFFSET)
+		end
+	end
 end
 
 local function place_frame(frame, unit, mode)
@@ -32,6 +47,7 @@ local function place_frame(frame, unit, mode)
 		end
 		local saved = overridePosition or ns.GetAttachedPosition(unit) or ns.GetDefaultAttachedPosition()
 		frame:SetParent(anchor)
+		raise_attached_frame(frame, anchor)
 		frame:SetPoint(saved.point, anchor, saved.relativePoint, saved.x, saved.y)
 		return true
 	end
@@ -114,7 +130,7 @@ function ns.UpdateUnitDisplays(unit, forceRefresh)
 
 	local model = forceRefresh and ns.RefreshUnitModel(unit) or ns.GetUnitModel(unit)
 	local runtime = ns.RuntimeEnsure()
-	local displayMode = ns.GetDisplayMode()
+	local displayMode = ns.GetUnitDisplayMode(unit)
 
 	for _, mode in ipairs(DISPLAY_MODES) do
 		local visibleMode = displayMode == mode or displayMode == ns.DISPLAY_MODE.BOTH
@@ -140,6 +156,19 @@ end
 
 function ns.RefreshAndUpdateUnit(unit)
 	ns.UpdateUnitDisplays(unit, true)
+end
+
+function ns.RepaintAllDisplays()
+	if ns.BeginAttachedAnchorCache then
+		ns.BeginAttachedAnchorCache()
+	end
+	ns.ForEachConfiguredUnit(function(unit)
+		ns.UpdateUnitDisplays(unit, false)
+	end)
+	if ns.EndAttachedAnchorCache then
+		ns.EndAttachedAnchorCache()
+	end
+	ns.LayoutStandaloneContainers()
 end
 
 function ns.LayoutStandaloneContainers()
@@ -179,9 +208,15 @@ function ns.LayoutStandaloneContainers()
 end
 
 function ns.RefreshAllDisplays()
+	if ns.BeginAttachedAnchorCache then
+		ns.BeginAttachedAnchorCache()
+	end
 	ns.ForEachConfiguredUnit(function(unit)
 		ns.RefreshAndUpdateUnit(unit)
 	end)
+	if ns.EndAttachedAnchorCache then
+		ns.EndAttachedAnchorCache()
+	end
 	ns.LayoutStandaloneContainers()
 end
 

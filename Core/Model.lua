@@ -23,6 +23,8 @@ local function build_type_model(unit, auraType, scanRows, previous)
 			auraType = auraType,
 			index = index,
 			auraInstanceID = row.auraInstanceID,
+			applicationDisplayCount = row.applicationDisplayCount,
+			durationObject = row.durationObject,
 			aura = row.aura,
 		}
 		model.rows[#model.rows + 1] = entry

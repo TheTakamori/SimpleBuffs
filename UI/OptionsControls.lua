@@ -7,6 +7,21 @@ local function refresh_displays()
 	end
 end
 
+local function repaint_displays()
+	if ns.RepaintAllDisplays then
+		ns.RepaintAllDisplays()
+	else
+		refresh_displays()
+	end
+end
+
+local function run_refresh(refresh)
+	if refresh == false then
+		return
+	end
+	(refresh or refresh_displays)()
+end
+
 local function add_tooltip(frame, tooltip)
 	if not tooltip then
 		return
@@ -55,7 +70,7 @@ function ns.CreateOptionsRowLabel(parent, text, x, y)
 	return label
 end
 
-function ns.CreateOptionsCheck(parent, text, y, getter, setter, x)
+function ns.CreateOptionsCheck(parent, text, y, getter, setter, x, refresh)
 	local check = CreateFrame(ns.UI.CHECK_BUTTON, nil, parent, ns.UI.UICHECK_BUTTON_TEMPLATE)
 	check:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x or ns.OPTIONS_LAYOUT.SUBTITLE_X, y)
 	check.Text = check.Text or check:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
@@ -66,7 +81,7 @@ function ns.CreateOptionsCheck(parent, text, y, getter, setter, x)
 			return
 		end
 		setter(self:GetChecked() == true)
-		refresh_displays()
+		run_refresh(refresh)
 		parent:RefreshFromDB()
 	end)
 	check.RefreshFromDB = function(self)
@@ -75,54 +90,63 @@ function ns.CreateOptionsCheck(parent, text, y, getter, setter, x)
 	return check
 end
 
-function ns.CreateOptionsCheckAt(parent, text, x, y, getter, setter)
-	local check = ns.CreateOptionsCheck(parent, text, y, getter, setter)
+function ns.CreateOptionsCheckAt(parent, text, x, y, getter, setter, refresh)
+	local check = ns.CreateOptionsCheck(parent, text, y, getter, setter, nil, refresh)
 	check:ClearAllPoints()
 	check:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
 	return check
 end
 
-function ns.CreateOptionsCheckOnRow(parent, text, x, y, getter, setter)
-	local check = ns.CreateOptionsCheck(parent, text, y, getter, setter)
+function ns.CreateOptionsCheckOnRow(parent, text, x, y, getter, setter, refresh)
+	local check = ns.CreateOptionsCheck(parent, text, y, getter, setter, nil, refresh)
 	check:ClearAllPoints()
 	check:SetPoint(ns.UI.ANCHOR_LEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
 	return check
 end
 
-function ns.CreateOptionsCycle(parent, text, y, values, getter, setter, labels, x, tooltip)
-	x = x or ns.OPTIONS_LAYOUT.SUBTITLE_X
-	local label = parent:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
-	label:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
-	label:SetText(text)
-
-	local button = CreateFrame(ns.UI.BUTTON, nil, parent, ns.UI.UIPANEL_BUTTON_TEMPLATE)
-	button:SetSize(ns.OPTIONS_LAYOUT.CYCLE_BUTTON_WIDTH, ns.OPTIONS_LAYOUT.CYCLE_BUTTON_HEIGHT)
-	button:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x + ns.OPTIONS_LAYOUT.CYCLE_BUTTON_LABEL_GAP_X, y + ns.OPTIONS_LAYOUT.CYCLE_BUTTON_OFFSET_Y)
-	button:SetScript(ns.UI.ON_CLICK, function()
-		local current = getter()
-		local nextIndex = 1
-		for index = 1, #values do
-			if values[index] == current then
-				nextIndex = index + 1
-				break
-			end
-		end
-		if nextIndex > #values then
-			nextIndex = 1
-		end
-		setter(values[nextIndex])
-		refresh_displays()
-		parent:RefreshFromDB()
-	end)
-	button.RefreshFromDB = function(self)
+function ns.CreateOptionsDropdownOnRow(parent, x, y, width, values, getter, setter, labels, tooltip, refresh)
+	local dropdown = CreateFrame(ns.UI.DROPDOWN_BUTTON, nil, parent, ns.UI.WOW_STYLE_DROPDOWN_TEMPLATE)
+	dropdown:SetSize(width or ns.OPTIONS_LAYOUT.DROPDOWN_BUTTON_WIDTH, ns.OPTIONS_LAYOUT.DROPDOWN_BUTTON_HEIGHT)
+	dropdown:SetPoint(ns.UI.ANCHOR_LEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
+	local function get_label()
 		local value = getter()
-		self:SetText((labels and labels[value]) or value)
+		return (labels and labels[value]) or value
 	end
-	add_tooltip(button, tooltip)
-	return button
+	local function is_selected(value)
+		return getter() == value
+	end
+	local function set_selected(value)
+		if getter() == value then
+			return
+		end
+		setter(value)
+		run_refresh(refresh)
+		parent:RefreshFromDB()
+	end
+	if dropdown.SetDefaultText then
+		dropdown:SetDefaultText(get_label())
+	end
+	if dropdown.SetSelectionText then
+		dropdown:SetSelectionText(get_label)
+	end
+	dropdown:SetupMenu(function(_, rootDescription)
+		for index = 1, #values do
+			local value = values[index]
+			rootDescription:CreateRadio((labels and labels[value]) or value, is_selected, set_selected, value)
+		end
+	end)
+	dropdown.RefreshFromDB = function(self)
+		if self.GenerateMenu then
+			self:GenerateMenu()
+		elseif self.OverrideText then
+			self:OverrideText(get_label())
+		end
+	end
+	add_tooltip(dropdown, tooltip)
+	return dropdown
 end
 
-function ns.CreateOptionsButton(parent, text, x, y, width, onClick, refresh)
+function ns.CreateOptionsButton(parent, text, x, y, width, onClick, refresh, refreshDisplays)
 	local button = CreateFrame(ns.UI.BUTTON, nil, parent, ns.UI.UIPANEL_BUTTON_TEMPLATE)
 	button:SetSize(width or ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_WIDTH, ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_HEIGHT)
 	button:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
@@ -132,7 +156,7 @@ function ns.CreateOptionsButton(parent, text, x, y, width, onClick, refresh)
 			return
 		end
 		onClick(self)
-		refresh_displays()
+		run_refresh(refreshDisplays)
 		parent:RefreshFromDB()
 	end)
 	if refresh then
@@ -141,7 +165,7 @@ function ns.CreateOptionsButton(parent, text, x, y, width, onClick, refresh)
 	return button
 end
 
-function ns.CreateOptionsSlider(parent, text, y, minValue, maxValue, step, getter, setter, formatter, x, tooltip)
+function ns.CreateOptionsSlider(parent, text, y, minValue, maxValue, step, getter, setter, formatter, x, tooltip, refresh)
 	x = x or ns.OPTIONS_LAYOUT.SUBTITLE_X
 	local slider = CreateFrame(ns.UI.SLIDER, nil, parent, ns.UI.OPTIONS_SLIDER_TEMPLATE)
 	slider:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
@@ -151,6 +175,10 @@ function ns.CreateOptionsSlider(parent, text, y, minValue, maxValue, step, gette
 		slider:SetObeyStepOnDrag(true)
 	end
 	slider:SetWidth(ns.OPTIONS_LAYOUT.SLIDER_WIDTH)
+	slider.Text:ClearAllPoints()
+	slider.Text:SetWidth(ns.OPTIONS_LAYOUT.SLIDER_LABEL_WIDTH)
+	slider.Text:SetJustifyH(ns.UI.ANCHOR_LEFT)
+	slider.Text:SetPoint(ns.UI.ANCHOR_RIGHT, slider, ns.UI.ANCHOR_LEFT, -ns.OPTIONS_LAYOUT.SLIDER_LABEL_GAP_X, ns.NUMBER.ZERO)
 	slider.Text:SetText(text)
 	slider.Low:SetText(tostring(minValue))
 	slider.High:SetText(tostring(maxValue))
@@ -160,9 +188,13 @@ function ns.CreateOptionsSlider(parent, text, y, minValue, maxValue, step, gette
 		if parent.ignoreCallbacks then
 			return
 		end
+		local previousValue = getter()
 		setter(value)
+		if getter() == previousValue then
+			return
+		end
 		self.ValueText:SetText(formatter and formatter(value) or tostring(math.floor(value)))
-		refresh_displays()
+		run_refresh(refresh or repaint_displays)
 	end)
 	slider.RefreshFromDB = function(self)
 		local value = getter()

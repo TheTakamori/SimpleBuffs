@@ -56,6 +56,28 @@ function ns.StopStandaloneDrag(frame)
 	movableFrame.simpleBuffsPositionKey = nil
 end
 
+local function get_standalone_frame_label(frame)
+	local unit = frame and frame.unit
+	if not unit then
+		return nil
+	end
+
+	if ns.UNIT_LABEL[unit] then
+		return ns.UNIT_LABEL[unit]
+	end
+
+	local groupKey = ns.GetUnitGroup(unit) or unit
+	if ns.UNIT_GROUP_LABEL[groupKey] then
+		return ns.UNIT_GROUP_LABEL[groupKey]
+	end
+	for key, label in pairs(ns.UNIT_GROUP_CONTAINER or {}) do
+		if ns.GetStandaloneContainerKey and ns.GetStandaloneContainerKey(key) == unit then
+			return label
+		end
+	end
+	return ns.UNIT_GROUP_CONTAINER[groupKey] or unit
+end
+
 local function show_move_tooltip(self)
 	if ns.DB().locked or not GameTooltip then
 		return
@@ -63,6 +85,15 @@ local function show_move_tooltip(self)
 
 	GameTooltip:SetOwner(self, ns.UI.ANCHOR_RIGHT)
 	GameTooltip:ClearLines()
+	local unitLabel = get_standalone_frame_label(self)
+	if unitLabel then
+		GameTooltip:AddLine(
+			ns.TEXT.STANDALONE_TOOLTIP_UNIT:format(unitLabel),
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_R,
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_G,
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_B
+		)
+	end
 	GameTooltip:AddLine(
 		ns.TEXT.STANDALONE_MOVE_TOOLTIP,
 		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_R,

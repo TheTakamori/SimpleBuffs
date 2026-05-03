@@ -38,6 +38,12 @@ return function(runner, ns)
 			GetAuraDataByAuraInstanceID = function(_, auraInstanceID)
 				return aura(auraInstanceID, "Aura " .. tostring(auraInstanceID))
 			end,
+			GetAuraApplicationDisplayCount = function(_, auraInstanceID)
+				return auraInstanceID
+			end,
+			GetAuraDuration = function(_, auraInstanceID)
+				return "duration-" .. tostring(auraInstanceID)
+			end,
 		})
 
 		local rows = ns.ScanUnitAuraType("focus", ns.AURA_TYPE.BUFF)
@@ -45,6 +51,8 @@ return function(runner, ns)
 		assert.equal(#rows, 2)
 		assert.equal(rows[1].auraInstanceID, 11)
 		assert.equal(rows[2].aura.name, "Aura 12")
+		assert.equal(rows[2].applicationDisplayCount, 12)
+		assert.equal(rows[2].durationObject, "duration-12")
 		assert.equal(captured.unit, "focus")
 		assert.equal(captured.filter, "HELPFUL")
 		assert.equal(captured.maxCount, ns.DEFAULTS.appearance.maxAuras)
@@ -55,7 +63,7 @@ return function(runner, ns)
 	runner:test("ScanUnitAuraType includes optional filter mode", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()
-		ns.SetAppearanceValue("filterMode", ns.FILTER_MODE.PLAYER)
+		ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PET, ns.FILTER_MODE.PLAYER)
 
 		local capturedFilter
 		rawset(_G, "UnitExists", function()
@@ -74,6 +82,62 @@ return function(runner, ns)
 		ns.ScanUnitAuraType("pet", ns.AURA_TYPE.DEBUFF)
 
 		assert.equal(capturedFilter, "HARMFUL|PLAYER")
+	end)
+
+	runner:test("ScanUnitAuraType maps every per-group filter mode", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		local captured = {}
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function(_, filter)
+				captured[#captured + 1] = filter
+				return {}
+			end,
+			GetAuraDataByAuraInstanceID = function()
+				return nil
+			end,
+		})
+
+		local cases = {
+			{ ns.FILTER_MODE.ALL, "HELPFUL" },
+			{ ns.FILTER_MODE.PLAYER, "HELPFUL|PLAYER" },
+			{ ns.FILTER_MODE.IMPORTANT, "HELPFUL|IMPORTANT" },
+			{ ns.FILTER_MODE.CROWD_CONTROL, "HELPFUL|CROWD_CONTROL" },
+		}
+		for index = 1, #cases do
+			ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PET, cases[index][1])
+			ns.ScanUnitAuraType("pet", ns.AURA_TYPE.BUFF)
+			assert.equal(captured[index], cases[index][2])
+		end
+	end)
+
+	runner:test("ScanUnitAuraType maps per-group sort rules", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		local captured = {}
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function(_, _, _, sortRule)
+				captured[#captured + 1] = sortRule
+				return {}
+			end,
+			GetAuraDataByAuraInstanceID = function()
+				return nil
+			end,
+		})
+
+		for index = 1, #ns.SORT_RULE_ORDER do
+			ns.SetUnitGroupSortRule(ns.UNIT_GROUP.PARTY, ns.SORT_RULE_ORDER[index])
+			ns.ScanUnitAuraType("party1", ns.AURA_TYPE.BUFF)
+			assert.equal(captured[index], ns.SORT_RULE_ORDER[index])
+		end
 	end)
 
 	runner:test("ScanUnitAuraType returns empty rows for missing units", function()

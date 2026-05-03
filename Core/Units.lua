@@ -2,9 +2,12 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 local tokenGroup = {}
+local groupUnits = {}
 
 local function add_unit(units, unit, groupKey)
 	units[#units + 1] = unit
+	groupUnits[groupKey] = groupUnits[groupKey] or {}
+	groupUnits[groupKey][#groupUnits[groupKey] + 1] = unit
 	tokenGroup[unit] = groupKey
 	if not ns.UNIT_LABEL[unit] then
 		local number = unit:match("(%d+)$")
@@ -17,6 +20,7 @@ end
 local function build_static_units()
 	local units = {}
 	tokenGroup = {}
+	groupUnits = {}
 	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
 		local definition = ns.UNIT_GROUP_DEFINITIONS[groupKey]
 		if definition.tokens then
@@ -60,8 +64,8 @@ end
 
 function ns.GetStandaloneContainerKey(groupKey)
 	local container = ns.UNIT_GROUP_CONTAINER[groupKey] or groupKey
-	if container == "Enemy/Boss/Arena" then
-		return "enemy"
+	if container == ns.CONTAINER_LABEL.ENEMY then
+		return ns.STANDALONE_CONTAINER_KEY.ENEMY
 	end
 	return groupKey
 end
@@ -82,5 +86,12 @@ end
 function ns.ForEachConfiguredUnit(callback)
 	for index = 1, #ns.UNIT_ORDER do
 		callback(ns.UNIT_ORDER[index])
+	end
+end
+
+function ns.ForEachUnitInGroup(groupKey, callback)
+	local units = groupUnits[groupKey] or {}
+	for index = 1, #units do
+		callback(units[index])
 	end
 end

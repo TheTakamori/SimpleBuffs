@@ -43,6 +43,14 @@ ns.UNIT_GROUP_LABEL = {
 	arenaPets = "Arena Pets",
 }
 
+ns.CONTAINER_LABEL = {
+	ENEMY = "Enemy/Boss/Arena",
+}
+
+ns.STANDALONE_CONTAINER_KEY = {
+	ENEMY = "enemy",
+}
+
 ns.UNIT_GROUP_CONTAINER = {
 	player = "Player",
 	target = "Target",
@@ -52,10 +60,35 @@ ns.UNIT_GROUP_CONTAINER = {
 	partyPets = "Party Pets",
 	raid = "Raid",
 	raidPets = "Raid Pets",
-	boss = "Enemy/Boss/Arena",
-	arena = "Enemy/Boss/Arena",
-	arenaPets = "Enemy/Boss/Arena",
+	boss = ns.CONTAINER_LABEL.ENEMY,
+	arena = ns.CONTAINER_LABEL.ENEMY,
+	arenaPets = ns.CONTAINER_LABEL.ENEMY,
 }
+
+ns.UNIT_GROUP_SUPPORTS_ATTACHED = {
+	player = true,
+	target = true,
+	focus = true,
+	pet = true,
+	party = true,
+	partyPets = true,
+	raid = true,
+	raidPets = true,
+	boss = true,
+	arena = true,
+	arenaPets = true,
+}
+
+function ns.UnitGroupSupportsAttached(groupKey)
+	return ns.UNIT_GROUP_SUPPORTS_ATTACHED[groupKey] == true
+end
+
+function ns.GetUnitGroupDisplayModes(groupKey)
+	if ns.UnitGroupSupportsAttached(groupKey) then
+		return ns.DISPLAY_MODE_ORDER
+	end
+	return ns.STANDALONE_DISPLAY_MODE_ORDER
+end
 
 ns.UNIT_GROUP_DEFINITIONS = {
 	player = {

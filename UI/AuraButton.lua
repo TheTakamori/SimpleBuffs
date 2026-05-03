@@ -10,8 +10,8 @@ local function set_count_text(button, entry, appearance)
 		return
 	end
 
-	if C_UnitAuras and C_UnitAuras.GetAuraApplicationDisplayCount and entry.auraInstanceID then
-		button.count:SetText(C_UnitAuras.GetAuraApplicationDisplayCount(entry.unit, entry.auraInstanceID, ns.AURA_BUTTON.COUNT_MIN, ns.AURA_BUTTON.COUNT_MAX))
+	if entry.applicationDisplayCount then
+		button.count:SetText(entry.applicationDisplayCount)
 		return
 	end
 
@@ -30,8 +30,8 @@ local function set_cooldown(button, entry, appearance)
 	-- In Midnight, aura duration fields can be secret. Retrieve Blizzard's
 	-- duration object by non-secret unit/instance ID and pass that to the
 	-- cooldown widget instead of reading expirationTime/duration directly.
-	if C_UnitAuras and C_UnitAuras.GetAuraDuration and button.cooldown.SetCooldownFromDurationObject and entry.auraInstanceID then
-		button.cooldown:SetCooldownFromDurationObject(C_UnitAuras.GetAuraDuration(entry.unit, entry.auraInstanceID), true)
+	if entry.durationObject and button.cooldown.SetCooldownFromDurationObject then
+		button.cooldown:SetCooldownFromDurationObject(entry.durationObject, true)
 		return
 	end
 
@@ -66,12 +66,22 @@ local function add_standalone_move_tooltip_line(button)
 		return
 	end
 
+	local entry = button.entry
+	local unitLabel = entry and (ns.UNIT_LABEL[entry.unit] or entry.unit)
 	GameTooltip:AddLine(
 		ns.TEXT.TOOLTIP_DIVIDER,
 		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_R,
 		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_G,
 		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_B
 	)
+	if unitLabel then
+		GameTooltip:AddLine(
+			ns.TEXT.STANDALONE_TOOLTIP_UNIT:format(unitLabel),
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_R,
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_G,
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_B
+		)
+	end
 	GameTooltip:AddLine(
 		ns.TEXT.STANDALONE_MOVE_TOOLTIP,
 		ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_R,

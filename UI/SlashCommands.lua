@@ -19,11 +19,11 @@ local function refresh()
 end
 
 local function show_help()
-	print_line("Simple Buffs commands:")
-	print_line("/sbuff - Open options")
-	print_line("/sbuff lock - Lock standalone displays")
-	print_line("/sbuff unlock - Unlock Shift-drag for standalone displays")
-	print_line("/sbuff reset - Reset settings")
+	print_line(ns.TEXT.SLASH_HELP_TITLE)
+	print_line(ns.TEXT.SLASH_HELP_OPEN)
+	print_line(ns.TEXT.SLASH_HELP_LOCK)
+	print_line(ns.TEXT.SLASH_HELP_UNLOCK)
+	print_line(ns.TEXT.SLASH_HELP_RESET)
 end
 
 function ns.RegisterSlashCommands()
@@ -33,21 +33,21 @@ function ns.RegisterSlashCommands()
 		local command = (msg or ""):match("^%s*(%S*)")
 		command = command and command:lower() or ""
 
-		if command == "" or command == "options" or command == "config" then
+		if command == ns.TEXT.EMPTY or command == ns.SLASH_COMMAND.OPTIONS or command == ns.SLASH_COMMAND.CONFIG then
 			ns.OpenOptionsPanel()
-		elseif command == "lock" then
+		elseif command == ns.SLASH_COMMAND.LOCK then
 			ns.SetLocked(true)
 			refresh()
 			print_line(ns.TEXT.LOCKED)
-		elseif command == "unlock" then
+		elseif command == ns.SLASH_COMMAND.UNLOCK then
 			ns.SetLocked(false)
 			refresh()
 			print_line(ns.TEXT.UNLOCKED)
-		elseif command == "reset" then
+		elseif command == ns.SLASH_COMMAND.RESET then
 			ns.ResetDB()
 			refresh()
 			print_line(ns.TEXT.RESET)
-		elseif command == "help" then
+		elseif command == ns.SLASH_COMMAND.HELP then
 			show_help()
 		else
 			show_help()

@@ -16,6 +16,16 @@ ns.DB_KEY = {
 	SHOW_TITLES = "showTitles",
 }
 
+ns.AURA_FILTER_SUFFIX = {
+	PLAYER = "PLAYER",
+	IMPORTANT = "IMPORTANT",
+	CROWD_CONTROL = "CROWD_CONTROL",
+}
+
+ns.AURA_SORT_DIRECTION = {
+	NORMAL = "Normal",
+}
+
 ns.LUA_TYPE = {
 	FUNCTION = "function",
 	NUMBER = "number",
@@ -46,10 +56,17 @@ ns.FRAME_ATTR = {
 ns.BLIZZARD_FRAME = {
 	PARTY_FRAME = "PartyFrame",
 	COMPACT_PARTY_FRAME = "CompactPartyFrame",
+	COMPACT_RAID_FRAME_CONTAINER = "CompactRaidFrameContainer",
 	COMPACT_PARTY_FRAME_MEMBER_PREFIX = "CompactPartyFrameMember",
 	PARTY_MEMBER_FRAME_PREFIX = "PartyMemberFrame",
+	PARTY_MEMBER_PET_FRAME_SUFFIX = "PetFrame",
 	PARTY_FRAME_MEMBER_PREFIX = "PartyFrameMember",
 	MEMBER_FRAME_PREFIX = "MemberFrame",
+	BOSS_TARGET_FRAME_PREFIX = "Boss",
+	BOSS_TARGET_FRAME_SUFFIX = "TargetFrame",
+	ARENA_ENEMY_FRAME_PREFIX = "ArenaEnemyFrame",
+	ARENA_ENEMY_MATCH_FRAME_PREFIX = "ArenaEnemyMatchFrame",
+	ARENA_ENEMY_PET_FRAME_SUFFIX = "PetFrame",
 	PLAYER_FRAME = "PlayerFrame",
 	TARGET_FRAME = "TargetFrame",
 	FOCUS_FRAME = "FocusFrame",
@@ -62,4 +79,10 @@ ns.UNIT_TOKEN = {
 	FOCUS = "focus",
 	PET = "pet",
 	PARTY_PREFIX = "party",
+	PARTY_PET_PREFIX = "partypet",
+	RAID_PREFIX = "raid",
+	RAID_PET_PREFIX = "raidpet",
+	BOSS_PREFIX = "boss",
+	ARENA_PREFIX = "arena",
+	ARENA_PET_PREFIX = "arenapet",
 }

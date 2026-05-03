@@ -1,6 +1,26 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
+local function default_unit_options()
+	return {
+		buff = true,
+		debuff = true,
+		mode = ns.DISPLAY_MODE.ATTACHED,
+		layout = ns.LAYOUT.HORIZONTAL,
+		sortRule = ns.SORT_RULE.EXPIRATION,
+		filterMode = ns.FILTER_MODE.ALL,
+	}
+end
+
+local function copy_position(position)
+	return {
+		point = position.point,
+		relativePoint = position.relativePoint,
+		x = position.x,
+		y = position.y,
+	}
+end
+
 ns.DEFAULTS = {
 	version = ns.DB_VERSION,
 	locked = false,
@@ -8,7 +28,6 @@ ns.DEFAULTS = {
 		angle = 225,
 		hide = false,
 	},
-	displayMode = ns.DISPLAY_MODE.ATTACHED,
 	appearance = {
 		iconSize = 28,
 		spacing = 3,
@@ -24,131 +43,33 @@ ns.DEFAULTS = {
 		scale = 1,
 	},
 	units = {
-		player = {
-			buff = true,
-			debuff = true,
-		},
-		target = {
-			buff = true,
-			debuff = true,
-		},
-		focus = {
-			buff = true,
-			debuff = true,
-		},
-		pet = {
-			buff = true,
-			debuff = true,
-		},
-		party = {
-			buff = true,
-			debuff = true,
-		},
-		partyPets = {
-			buff = true,
-			debuff = true,
-		},
-		raid = {
-			buff = true,
-			debuff = true,
-		},
-		raidPets = {
-			buff = true,
-			debuff = true,
-		},
-		boss = {
-			buff = true,
-			debuff = true,
-		},
-		arena = {
-			buff = true,
-			debuff = true,
-		},
-		arenaPets = {
-			buff = true,
-			debuff = true,
-		},
+		player = default_unit_options(),
+		target = default_unit_options(),
+		focus = default_unit_options(),
+		pet = default_unit_options(),
+		party = default_unit_options(),
+		partyPets = default_unit_options(),
+		raid = default_unit_options(),
+		raidPets = default_unit_options(),
+		boss = default_unit_options(),
+		arena = default_unit_options(),
+		arenaPets = default_unit_options(),
 	},
 	attached = {
-		focus = {
-			point = ns.ANCHOR_DEFAULTS.focus.point,
-			relativePoint = ns.ANCHOR_DEFAULTS.focus.relativePoint,
-			x = ns.ANCHOR_DEFAULTS.focus.x,
-			y = ns.ANCHOR_DEFAULTS.focus.y,
-		},
-		pet = {
-			point = ns.ANCHOR_DEFAULTS.pet.point,
-			relativePoint = ns.ANCHOR_DEFAULTS.pet.relativePoint,
-			x = ns.ANCHOR_DEFAULTS.pet.x,
-			y = ns.ANCHOR_DEFAULTS.pet.y,
-		},
-		player = {
-			point = ns.ANCHOR_DEFAULTS.player.point,
-			relativePoint = ns.ANCHOR_DEFAULTS.player.relativePoint,
-			x = ns.ANCHOR_DEFAULTS.player.x,
-			y = ns.ANCHOR_DEFAULTS.player.y,
-		},
-		target = {
-			point = ns.ANCHOR_DEFAULTS.target.point,
-			relativePoint = ns.ANCHOR_DEFAULTS.target.relativePoint,
-			x = ns.ANCHOR_DEFAULTS.target.x,
-			y = ns.ANCHOR_DEFAULTS.target.y,
-		},
+		focus = copy_position(ns.ANCHOR_DEFAULTS.focus),
+		pet = copy_position(ns.ANCHOR_DEFAULTS.pet),
+		player = copy_position(ns.ANCHOR_DEFAULTS.player),
+		target = copy_position(ns.ANCHOR_DEFAULTS.target),
 	},
 	standalone = {
-		player = {
-			point = ns.STANDALONE_DEFAULTS.player.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.player.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.player.x,
-			y = ns.STANDALONE_DEFAULTS.player.y,
-		},
-		target = {
-			point = ns.STANDALONE_DEFAULTS.target.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.target.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.target.x,
-			y = ns.STANDALONE_DEFAULTS.target.y,
-		},
-		focus = {
-			point = ns.STANDALONE_DEFAULTS.focus.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.focus.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.focus.x,
-			y = ns.STANDALONE_DEFAULTS.focus.y,
-		},
-		pet = {
-			point = ns.STANDALONE_DEFAULTS.pet.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.pet.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.pet.x,
-			y = ns.STANDALONE_DEFAULTS.pet.y,
-		},
-		party = {
-			point = ns.STANDALONE_DEFAULTS.party.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.party.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.party.x,
-			y = ns.STANDALONE_DEFAULTS.party.y,
-		},
-		partyPets = {
-			point = ns.STANDALONE_DEFAULTS.partyPets.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.partyPets.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.partyPets.x,
-			y = ns.STANDALONE_DEFAULTS.partyPets.y,
-		},
-		raid = {
-			point = ns.STANDALONE_DEFAULTS.raid.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.raid.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.raid.x,
-			y = ns.STANDALONE_DEFAULTS.raid.y,
-		},
-		raidPets = {
-			point = ns.STANDALONE_DEFAULTS.raidPets.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.raidPets.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.raidPets.x,
-			y = ns.STANDALONE_DEFAULTS.raidPets.y,
-		},
-		enemy = {
-			point = ns.STANDALONE_DEFAULTS.enemy.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.enemy.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.enemy.x,
-			y = ns.STANDALONE_DEFAULTS.enemy.y,
-		},
+		player = copy_position(ns.STANDALONE_DEFAULTS.player),
+		target = copy_position(ns.STANDALONE_DEFAULTS.target),
+		focus = copy_position(ns.STANDALONE_DEFAULTS.focus),
+		pet = copy_position(ns.STANDALONE_DEFAULTS.pet),
+		party = copy_position(ns.STANDALONE_DEFAULTS.party),
+		partyPets = copy_position(ns.STANDALONE_DEFAULTS.partyPets),
+		raid = copy_position(ns.STANDALONE_DEFAULTS.raid),
+		raidPets = copy_position(ns.STANDALONE_DEFAULTS.raidPets),
+		enemy = copy_position(ns.STANDALONE_DEFAULTS.enemy),
 	},
 }
