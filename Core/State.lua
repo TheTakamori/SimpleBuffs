@@ -45,7 +45,6 @@ local function sanitize_position(saved, fallback)
 end
 
 local function sanitize_unit_options(unitOptions)
-	unitOptions.enabled = unitOptions.enabled ~= false
 	unitOptions.buff = unitOptions.buff ~= false
 	unitOptions.debuff = unitOptions.debuff ~= false
 end
@@ -142,7 +141,7 @@ end
 
 function ns.IsUnitAuraEnabled(unit, auraType)
 	local options = ns.GetUnitOptions(unit)
-	return options and options.enabled and options[auraType] == true
+	return options and options[auraType] == true
 end
 
 function ns.GetDisplayMode()
@@ -189,15 +188,6 @@ function ns.SetAppearanceValue(key, value)
 	return true
 end
 
-function ns.SetUnitGroupEnabled(groupKey, enabled)
-	local options = ns.GetUnitGroupOptions(groupKey)
-	if not options then
-		return false
-	end
-	options.enabled = enabled == true
-	return true
-end
-
 function ns.SetUnitGroupAuraEnabled(groupKey, auraType, enabled)
 	local options = ns.GetUnitGroupOptions(groupKey)
 	if not options or not ns.AURA_FILTER[auraType] then
@@ -205,10 +195,6 @@ function ns.SetUnitGroupAuraEnabled(groupKey, auraType, enabled)
 	end
 	options[auraType] = enabled == true
 	return true
-end
-
-function ns.SetUnitEnabled(unit, enabled)
-	return ns.SetUnitGroupEnabled(ns.GetUnitGroup(unit) or unit, enabled)
 end
 
 function ns.SetUnitAuraEnabled(unit, auraType, enabled)

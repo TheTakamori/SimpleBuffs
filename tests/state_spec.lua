@@ -10,10 +10,12 @@ return function(runner, ns)
 		local db = ns.InitDB()
 
 		assert.equal(db.displayMode, ns.DISPLAY_MODE.ATTACHED)
-		assert.equal(db.units.core.buff, true)
-		assert.equal(db.units.core.debuff, true)
-		assert.equal(db.units.raid.enabled, true)
-		assert.equal(db.units.nameplates.enabled, true)
+		assert.equal(db.units.player.buff, true)
+		assert.equal(db.units.target.debuff, true)
+		assert.equal(db.units.focus.buff, true)
+		assert.equal(db.units.pet.debuff, true)
+		assert.equal(db.units.vehicle.buff, true)
+		assert.equal(db.units.raid.debuff, true)
 		assert.equal(db.appearance.iconSize, 28)
 		assert.equal(db.appearance.showTitles, false)
 		assert.equal(db.minimap.angle, ns.DEFAULTS.minimap.angle)
@@ -37,8 +39,7 @@ return function(runner, ns)
 				filterMode = "bad",
 			},
 			units = {
-				core = {
-					enabled = false,
+				player = {
 					buff = false,
 					debuff = true,
 				},
@@ -49,7 +50,7 @@ return function(runner, ns)
 				pet = {},
 			},
 			standalone = {
-				core = {},
+				player = {},
 				party = {},
 			},
 		}
@@ -62,9 +63,9 @@ return function(runner, ns)
 		assert.equal(db.appearance.maxAuras, ns.LIMITS.MAX_AURAS_MIN)
 		assert.equal(db.appearance.scale, ns.LIMITS.SCALE_MAX)
 		assert.equal(db.appearance.layout, ns.DEFAULTS.appearance.layout)
-		assert.equal(db.units.core.enabled, false)
-		assert.equal(db.units.core.buff, false)
-		assert.equal(db.units.party.enabled, true)
+		assert.equal(db.units.player.buff, false)
+		assert.equal(db.units.player.debuff, true)
+		assert.equal(db.units.party.buff, true)
 		assert.equal(db.minimap.angle, 360)
 		assert.equal(db.minimap.hide, true)
 	end)
@@ -80,7 +81,7 @@ return function(runner, ns)
 		local db = ns.InitDB()
 
 		assert.equal(db.appearance.iconSize, 34)
-		assert.equal(db.units.core.enabled, true)
+		assert.equal(db.units.player.buff, true)
 		_G.PetFocusBuffsDB = nil
 	end)
 

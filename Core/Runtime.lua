@@ -7,6 +7,5 @@ function ns.RuntimeEnsure()
 	ns.Runtime.frames = ns.Runtime.frames or {}
 	ns.Runtime.containers = ns.Runtime.containers or {}
 	ns.Runtime.dirtyUnits = ns.Runtime.dirtyUnits or {}
-	ns.Runtime.activeNameplates = ns.Runtime.activeNameplates or {}
 	return ns.Runtime
 end

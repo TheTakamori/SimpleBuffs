@@ -13,8 +13,6 @@ frame:RegisterEvent("GROUP_ROSTER_UPDATE")
 frame:RegisterEvent("RAID_ROSTER_UPDATE")
 frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 frame:RegisterEvent("ARENA_OPPONENT_UPDATE")
-frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
-frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 
 local function print_loaded()
 	if DEFAULT_CHAT_FRAME then
@@ -99,17 +97,6 @@ frame:SetScript("OnEvent", function(_, event, arg1)
 		refresh_group(ns.UNIT_GROUP.BOSS)
 	elseif event == "ARENA_OPPONENT_UPDATE" then
 		refresh_groups(ns.UNIT_GROUP.ARENA, ns.UNIT_GROUP.ARENA_PETS)
-	elseif event == "NAME_PLATE_UNIT_ADDED" then
-		ns.MarkNameplateActive(arg1, true)
-		refresh_unit(arg1)
-	elseif event == "NAME_PLATE_UNIT_REMOVED" then
-		ns.MarkNameplateActive(arg1, false)
-		if ns.UpdateUnitDisplays then
-			ns.UpdateUnitDisplays(arg1)
-		end
-		if ns.LayoutStandaloneContainers then
-			ns.LayoutStandaloneContainers()
-		end
 	elseif event == "UNIT_AURA" then
 		if ns.IsTrackedUnit(arg1) then
 			refresh_unit(arg1)

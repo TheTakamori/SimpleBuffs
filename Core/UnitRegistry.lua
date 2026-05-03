@@ -2,7 +2,11 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.UNIT_GROUP = {
-	CORE = "core",
+	PLAYER = "player",
+	TARGET = "target",
+	FOCUS = "focus",
+	PET = "pet",
+	VEHICLE = "vehicle",
 	PARTY = "party",
 	PARTY_PETS = "partyPets",
 	RAID = "raid",
@@ -10,11 +14,14 @@ ns.UNIT_GROUP = {
 	BOSS = "boss",
 	ARENA = "arena",
 	ARENA_PETS = "arenaPets",
-	NAMEPLATES = "nameplates",
 }
 
 ns.UNIT_GROUP_ORDER = {
-	ns.UNIT_GROUP.CORE,
+	ns.UNIT_GROUP.PLAYER,
+	ns.UNIT_GROUP.TARGET,
+	ns.UNIT_GROUP.FOCUS,
+	ns.UNIT_GROUP.PET,
+	ns.UNIT_GROUP.VEHICLE,
 	ns.UNIT_GROUP.PARTY,
 	ns.UNIT_GROUP.PARTY_PETS,
 	ns.UNIT_GROUP.RAID,
@@ -22,11 +29,14 @@ ns.UNIT_GROUP_ORDER = {
 	ns.UNIT_GROUP.BOSS,
 	ns.UNIT_GROUP.ARENA,
 	ns.UNIT_GROUP.ARENA_PETS,
-	ns.UNIT_GROUP.NAMEPLATES,
 }
 
 ns.UNIT_GROUP_LABEL = {
-	core = "Core",
+	player = "Player",
+	target = "Target",
+	focus = "Focus",
+	pet = "Pet",
+	vehicle = "Vehicle",
 	party = "Party",
 	partyPets = "Party Pets",
 	raid = "Raid",
@@ -34,11 +44,14 @@ ns.UNIT_GROUP_LABEL = {
 	boss = "Bosses",
 	arena = "Arena",
 	arenaPets = "Arena Pets",
-	nameplates = "Nameplates",
 }
 
 ns.UNIT_GROUP_CONTAINER = {
-	core = "Player/Core",
+	player = "Player",
+	target = "Target",
+	focus = "Focus",
+	pet = "Pet",
+	vehicle = "Vehicle",
 	party = "Party",
 	partyPets = "Party Pets",
 	raid = "Raid",
@@ -46,21 +59,23 @@ ns.UNIT_GROUP_CONTAINER = {
 	boss = "Enemy/Boss/Arena",
 	arena = "Enemy/Boss/Arena",
 	arenaPets = "Enemy/Boss/Arena",
-	nameplates = "Nameplates",
-}
-
-ns.CORE_UNITS = {
-	"player",
-	"target",
-	"focus",
-	"pet",
-	"vehicle",
-	"mouseover",
 }
 
 ns.UNIT_GROUP_DEFINITIONS = {
-	core = {
-		tokens = ns.CORE_UNITS,
+	player = {
+		tokens = { "player" },
+	},
+	target = {
+		tokens = { "target" },
+	},
+	focus = {
+		tokens = { "focus" },
+	},
+	pet = {
+		tokens = { "pet" },
+	},
+	vehicle = {
+		tokens = { "vehicle" },
 	},
 	party = {
 		prefix = "party",
@@ -90,11 +105,6 @@ ns.UNIT_GROUP_DEFINITIONS = {
 		prefix = "arenapet",
 		count = 5,
 	},
-	nameplates = {
-		prefix = "nameplate",
-		count = 40,
-		dynamic = true,
-	},
 }
 
 ns.UNIT_LABEL = {
@@ -103,7 +113,6 @@ ns.UNIT_LABEL = {
 	focus = "Focus",
 	pet = "Pet",
 	vehicle = "Vehicle",
-	mouseover = "Mouseover",
 }
 
 ns.ANCHOR_DEFAULTS = {
@@ -134,23 +143,47 @@ ns.ANCHOR_DEFAULTS = {
 }
 
 ns.STANDALONE_DEFAULTS = {
-	core = {
+	player = {
 		point = "CENTER",
 		relativePoint = "CENTER",
 		x = -180,
 		y = 120,
 	},
-	party = {
+	target = {
 		point = "CENTER",
 		relativePoint = "CENTER",
 		x = -180,
-		y = 40,
+		y = 70,
+	},
+	focus = {
+		point = "CENTER",
+		relativePoint = "CENTER",
+		x = -180,
+		y = 20,
+	},
+	pet = {
+		point = "CENTER",
+		relativePoint = "CENTER",
+		x = -180,
+		y = -30,
+	},
+	vehicle = {
+		point = "CENTER",
+		relativePoint = "CENTER",
+		x = -180,
+		y = -80,
+	},
+	party = {
+		point = "CENTER",
+		relativePoint = "CENTER",
+		x = -40,
+		y = 120,
 	},
 	partyPets = {
 		point = "CENTER",
 		relativePoint = "CENTER",
-		x = -180,
-		y = -40,
+		x = -40,
+		y = 40,
 	},
 	raid = {
 		point = "CENTER",
@@ -169,11 +202,5 @@ ns.STANDALONE_DEFAULTS = {
 		relativePoint = "CENTER",
 		x = 120,
 		y = -40,
-	},
-	nameplates = {
-		point = "CENTER",
-		relativePoint = "CENTER",
-		x = 120,
-		y = -120,
 	},
 }

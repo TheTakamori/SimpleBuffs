@@ -24,48 +24,51 @@ ns.DEFAULTS = {
 		scale = 1,
 	},
 	units = {
-		core = {
-			enabled = true,
+		player = {
+			buff = true,
+			debuff = true,
+		},
+		target = {
+			buff = true,
+			debuff = true,
+		},
+		focus = {
+			buff = true,
+			debuff = true,
+		},
+		pet = {
+			buff = true,
+			debuff = true,
+		},
+		vehicle = {
 			buff = true,
 			debuff = true,
 		},
 		party = {
-			enabled = true,
 			buff = true,
 			debuff = true,
 		},
 		partyPets = {
-			enabled = true,
 			buff = true,
 			debuff = true,
 		},
 		raid = {
-			enabled = true,
 			buff = true,
 			debuff = true,
 		},
 		raidPets = {
-			enabled = true,
 			buff = true,
 			debuff = true,
 		},
 		boss = {
-			enabled = true,
 			buff = true,
 			debuff = true,
 		},
 		arena = {
-			enabled = true,
 			buff = true,
 			debuff = true,
 		},
 		arenaPets = {
-			enabled = true,
-			buff = true,
-			debuff = true,
-		},
-		nameplates = {
-			enabled = true,
 			buff = true,
 			debuff = true,
 		},
@@ -97,11 +100,35 @@ ns.DEFAULTS = {
 		},
 	},
 	standalone = {
-		core = {
-			point = ns.STANDALONE_DEFAULTS.core.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.core.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.core.x,
-			y = ns.STANDALONE_DEFAULTS.core.y,
+		player = {
+			point = ns.STANDALONE_DEFAULTS.player.point,
+			relativePoint = ns.STANDALONE_DEFAULTS.player.relativePoint,
+			x = ns.STANDALONE_DEFAULTS.player.x,
+			y = ns.STANDALONE_DEFAULTS.player.y,
+		},
+		target = {
+			point = ns.STANDALONE_DEFAULTS.target.point,
+			relativePoint = ns.STANDALONE_DEFAULTS.target.relativePoint,
+			x = ns.STANDALONE_DEFAULTS.target.x,
+			y = ns.STANDALONE_DEFAULTS.target.y,
+		},
+		focus = {
+			point = ns.STANDALONE_DEFAULTS.focus.point,
+			relativePoint = ns.STANDALONE_DEFAULTS.focus.relativePoint,
+			x = ns.STANDALONE_DEFAULTS.focus.x,
+			y = ns.STANDALONE_DEFAULTS.focus.y,
+		},
+		pet = {
+			point = ns.STANDALONE_DEFAULTS.pet.point,
+			relativePoint = ns.STANDALONE_DEFAULTS.pet.relativePoint,
+			x = ns.STANDALONE_DEFAULTS.pet.x,
+			y = ns.STANDALONE_DEFAULTS.pet.y,
+		},
+		vehicle = {
+			point = ns.STANDALONE_DEFAULTS.vehicle.point,
+			relativePoint = ns.STANDALONE_DEFAULTS.vehicle.relativePoint,
+			x = ns.STANDALONE_DEFAULTS.vehicle.x,
+			y = ns.STANDALONE_DEFAULTS.vehicle.y,
 		},
 		party = {
 			point = ns.STANDALONE_DEFAULTS.party.point,
@@ -132,12 +159,6 @@ ns.DEFAULTS = {
 			relativePoint = ns.STANDALONE_DEFAULTS.enemy.relativePoint,
 			x = ns.STANDALONE_DEFAULTS.enemy.x,
 			y = ns.STANDALONE_DEFAULTS.enemy.y,
-		},
-		nameplates = {
-			point = ns.STANDALONE_DEFAULTS.nameplates.point,
-			relativePoint = ns.STANDALONE_DEFAULTS.nameplates.relativePoint,
-			x = ns.STANDALONE_DEFAULTS.nameplates.x,
-			y = ns.STANDALONE_DEFAULTS.nameplates.y,
 		},
 	},
 }

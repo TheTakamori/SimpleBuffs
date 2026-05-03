@@ -7,10 +7,12 @@ the UI can display aura timers without custom combat-state calculations.
 
 ## Features
 
-- Shows core, party, raid, boss, arena, pet, and nameplate buffs/debuffs by
-  default.
-- Supports attached displays near Blizzard unit frames and standalone
-  draggable grouped displays.
+- Shows player, target, focus, pet, vehicle, party, party pet, raid, raid pet,
+  boss, arena, and arena pet buffs/debuffs by default.
+- Supports attached displays near stable Blizzard unit frames, including party
+  frames when Blizzard exposes a usable anchor.
+- Provides standalone draggable grouped displays for units without attached
+  anchors or for users who prefer a custom placement.
 - Provides configurable icon size, spacing, layout, max aura count, sorting,
   and basic filtering.
 - Uses event-driven aura updates instead of constant polling.
@@ -32,8 +34,9 @@ the UI can display aura timers without custom combat-state calculations.
 ## Notes
 
 - Unit displays hide when their unit token does not currently exist.
-- Attached mode uses stable Blizzard frames for player, target, focus, and pet.
-  Standalone grouped displays are used for the larger unit categories.
+- Attached mode uses stable Blizzard frames for player, target, focus, pet, and
+  party frames when available. Standalone grouped displays are used for units
+  without reliable attached anchors.
 
 ## License
 

@@ -21,9 +21,16 @@ function ns.CreateOptionsLabelAt(parent, text, x, y, large)
 	return label
 end
 
-function ns.CreateOptionsCheck(parent, text, y, getter, setter)
+function ns.CreateOptionsRowLabel(parent, text, x, y)
+	local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	label:SetPoint("LEFT", parent, "TOPLEFT", x, y)
+	label:SetText(text)
+	return label
+end
+
+function ns.CreateOptionsCheck(parent, text, y, getter, setter, x)
 	local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
-	check:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, y)
+	check:SetPoint("TOPLEFT", parent, "TOPLEFT", x or 16, y)
 	check.Text = check.Text or check:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 	check.Text:SetPoint("LEFT", check, "RIGHT", 2, 0)
 	check.Text:SetText(text)
@@ -48,14 +55,22 @@ function ns.CreateOptionsCheckAt(parent, text, x, y, getter, setter)
 	return check
 end
 
-function ns.CreateOptionsCycle(parent, text, y, values, getter, setter, labels)
+function ns.CreateOptionsCheckOnRow(parent, text, x, y, getter, setter)
+	local check = ns.CreateOptionsCheck(parent, text, y, getter, setter)
+	check:ClearAllPoints()
+	check:SetPoint("LEFT", parent, "TOPLEFT", x, y)
+	return check
+end
+
+function ns.CreateOptionsCycle(parent, text, y, values, getter, setter, labels, x)
+	x = x or 22
 	local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	label:SetPoint("TOPLEFT", parent, "TOPLEFT", 22, y)
+	label:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 	label:SetText(text)
 
 	local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
 	button:SetSize(160, 22)
-	button:SetPoint("LEFT", label, "RIGHT", 12, 0)
+	button:SetPoint("TOPLEFT", parent, "TOPLEFT", x + 90, y + 2)
 	button:SetScript("OnClick", function()
 		local current = getter()
 		local nextIndex = 1
@@ -79,9 +94,10 @@ function ns.CreateOptionsCycle(parent, text, y, values, getter, setter, labels)
 	return button
 end
 
-function ns.CreateOptionsSlider(parent, text, y, minValue, maxValue, step, getter, setter, formatter)
+function ns.CreateOptionsSlider(parent, text, y, minValue, maxValue, step, getter, setter, formatter, x)
+	x = x or 24
 	local slider = CreateFrame("Slider", nil, parent, "OptionsSliderTemplate")
-	slider:SetPoint("TOPLEFT", parent, "TOPLEFT", 24, y)
+	slider:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 	slider:SetMinMaxValues(minValue, maxValue)
 	slider:SetValueStep(step)
 	if slider.SetObeyStepOnDrag then

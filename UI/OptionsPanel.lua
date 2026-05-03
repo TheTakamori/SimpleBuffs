@@ -7,17 +7,21 @@ local panelState = {
 	categoryID = nil,
 }
 
+local UNIT_ROW_HEIGHT = 24
+local UNIT_ROW_START_Y = -116
+local RIGHT_COLUMN_X = 320
+
 local function build_panel()
 	local frame = CreateFrame("Frame", "SimpleBuffsOptionsPanel", UIParent)
 	frame.name = ns.TEXT.OPTIONS_TITLE
-	frame:SetSize(620, 560)
+	frame:SetSize(760, 560)
 
 	local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
 	scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
 	scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -28, 0)
 
 	local content = CreateFrame("Frame", nil, scroll)
-	content:SetSize(560, 840)
+	content:SetSize(700, 620)
 	scroll:SetScrollChild(content)
 	frame.scroll = scroll
 	frame.content = content
@@ -27,89 +31,90 @@ local function build_panel()
 	subtitle:SetPoint("TOPLEFT", content, "TOPLEFT", 16, -42)
 	subtitle:SetText(ns.TEXT.OPTIONS_SUBTITLE)
 
-	ns.CreateOptionsLabel(content, "Units", -78)
-	ns.CreateOptionsLabelAt(content, "Group", 16, -104)
-	ns.CreateOptionsLabelAt(content, "Enabled", 112, -104)
-	ns.CreateOptionsLabelAt(content, "Buffs", 190, -104)
-	ns.CreateOptionsLabelAt(content, "Debuffs", 260, -104)
-	local y = -130
+	ns.CreateOptionsLabelAt(content, "Unit / Group", 16, -78)
+	ns.CreateOptionsLabelAt(content, "Buffs", 112, -78)
+	ns.CreateOptionsLabelAt(content, "Debuffs", 190, -78)
+	local y = UNIT_ROW_START_Y
 	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
-		ns.CreateOptionsLabelAt(content, ns.UNIT_GROUP_LABEL[groupKey] or groupKey, 16, y + 2)
-		ns.RegisterOptionsChild(content, ns.CreateOptionsCheckAt(content, "", 112, y, function()
-			return ns.GetUnitGroupOptions(groupKey).enabled
-		end, function(value)
-			ns.SetUnitGroupEnabled(groupKey, value)
-		end))
-		ns.RegisterOptionsChild(content, ns.CreateOptionsCheckAt(content, "", 190, y, function()
+		ns.CreateOptionsRowLabel(content, ns.UNIT_GROUP_LABEL[groupKey] or groupKey, 16, y)
+		ns.RegisterOptionsChild(content, ns.CreateOptionsCheckOnRow(content, "", 112, y, function()
 			return ns.GetUnitGroupOptions(groupKey).buff
 		end, function(value)
 			ns.SetUnitGroupAuraEnabled(groupKey, ns.AURA_TYPE.BUFF, value)
 		end))
-		ns.RegisterOptionsChild(content, ns.CreateOptionsCheckAt(content, "", 260, y, function()
+		ns.RegisterOptionsChild(content, ns.CreateOptionsCheckOnRow(content, "", 190, y, function()
 			return ns.GetUnitGroupOptions(groupKey).debuff
 		end, function(value)
 			ns.SetUnitGroupAuraEnabled(groupKey, ns.AURA_TYPE.DEBUFF, value)
 		end))
-		y = y - 24
+		y = y - UNIT_ROW_HEIGHT
 	end
 
-	ns.CreateOptionsLabel(content, "Display", -362)
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, "Mode", -388, ns.DISPLAY_MODE_ORDER, ns.GetDisplayMode, ns.SetDisplayMode, ns.DISPLAY_MODE_LABEL))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, "Layout", -416, ns.LAYOUT_ORDER, function()
+	local unitsBottomY = y
+	local displayY = -78
+	local styleY = displayY - 154
+	local showCountdownY = styleY - 234
+	local showSwipeY = showCountdownY - 26
+	local showCountsY = showSwipeY - 26
+
+	ns.CreateOptionsLabelAt(content, "Display", RIGHT_COLUMN_X, displayY)
+	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, "Mode", displayY - 26, ns.DISPLAY_MODE_ORDER, ns.GetDisplayMode, ns.SetDisplayMode, ns.DISPLAY_MODE_LABEL, RIGHT_COLUMN_X + 6))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, "Layout", displayY - 54, ns.LAYOUT_ORDER, function()
 		return ns.GetAppearance().layout
 	end, function(value)
 		ns.SetAppearanceValue("layout", value)
-	end, ns.LAYOUT_LABEL))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, "Sort", -444, ns.SORT_RULE_ORDER, function()
+	end, ns.LAYOUT_LABEL, RIGHT_COLUMN_X + 6))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, "Sort", displayY - 82, ns.SORT_RULE_ORDER, function()
 		return ns.GetAppearance().sortRule
 	end, function(value)
 		ns.SetAppearanceValue("sortRule", value)
-	end, ns.SORT_RULE_LABEL))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, "Filter", -472, ns.FILTER_MODE_ORDER, function()
+	end, ns.SORT_RULE_LABEL, RIGHT_COLUMN_X + 6))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsCycle(content, "Filter", displayY - 110, ns.FILTER_MODE_ORDER, function()
 		return ns.GetAppearance().filterMode
 	end, function(value)
 		ns.SetAppearanceValue("filterMode", value)
-	end, ns.FILTER_MODE_LABEL))
+	end, ns.FILTER_MODE_LABEL, RIGHT_COLUMN_X + 6))
 
-	ns.CreateOptionsLabel(content, "Style", -512)
-	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, "Icon Size", -548, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, 1, function()
+	ns.CreateOptionsLabelAt(content, "Style", RIGHT_COLUMN_X, styleY)
+	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, "Icon Size", styleY - 36, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, 1, function()
 		return ns.GetAppearance().iconSize
 	end, function(value)
 		ns.SetAppearanceValue("iconSize", value)
-	end))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, "Spacing", -598, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, 1, function()
+	end, nil, RIGHT_COLUMN_X + 8))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, "Spacing", styleY - 86, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, 1, function()
 		return ns.GetAppearance().spacing
 	end, function(value)
 		ns.SetAppearanceValue("spacing", value)
-	end))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, "Max Auras", -648, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, 1, function()
+	end, nil, RIGHT_COLUMN_X + 8))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, "Max Auras", styleY - 136, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, 1, function()
 		return ns.GetAppearance().maxAuras
 	end, function(value)
 		ns.SetAppearanceValue("maxAuras", value)
-	end))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, "Scale", -698, ns.LIMITS.SCALE_MIN * 100, ns.LIMITS.SCALE_MAX * 100, 5, function()
+	end, nil, RIGHT_COLUMN_X + 8))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, "Scale", styleY - 186, ns.LIMITS.SCALE_MIN * 100, ns.LIMITS.SCALE_MAX * 100, 5, function()
 		return ns.GetAppearance().scale * 100
 	end, function(value)
 		ns.SetAppearanceValue("scale", value / 100)
 	end, function(value)
 		return tostring(math.floor(value)) .. "%"
-	end))
+	end, RIGHT_COLUMN_X + 8))
 
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, "Show Countdown Text", -746, function()
+	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, "Show Countdown Text", showCountdownY, function()
 		return ns.GetAppearance().showCountdown
 	end, function(value)
 		ns.SetAppearanceValue("showCountdown", value)
-	end))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, "Show Cooldown Swipe", -772, function()
+	end, RIGHT_COLUMN_X))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, "Show Cooldown Swipe", showSwipeY, function()
 		return ns.GetAppearance().showSwipe
 	end, function(value)
 		ns.SetAppearanceValue("showSwipe", value)
-	end))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, "Show Stack Counts", -798, function()
+	end, RIGHT_COLUMN_X))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, "Show Stack Counts", showCountsY, function()
 		return ns.GetAppearance().showCounts
 	end, function(value)
 		ns.SetAppearanceValue("showCounts", value)
-	end))
+	end, RIGHT_COLUMN_X))
+	content:SetSize(700, math.max(math.abs(unitsBottomY), math.abs(showCountsY)) + 64)
 	function content:RefreshFromDB()
 		self.ignoreCallbacks = true
 		for _, child in ipairs(self.children or {}) do

@@ -76,36 +76,11 @@ function ns.GetConfiguredUnits()
 		units[#units + 1] = ns.UNIT_ORDER[index]
 	end
 
-	local runtime = ns.RuntimeEnsure()
-	for unit in pairs(runtime.activeNameplates or {}) do
-		units[#units + 1] = unit
-	end
-
 	return units
 end
 
 function ns.ForEachConfiguredUnit(callback)
 	for index = 1, #ns.UNIT_ORDER do
 		callback(ns.UNIT_ORDER[index])
-	end
-
-	local runtime = ns.RuntimeEnsure()
-	for unit in pairs(runtime.activeNameplates or {}) do
-		callback(unit)
-	end
-end
-
-function ns.MarkNameplateActive(unit, active)
-	if not unit or ns.GetUnitGroup(unit) ~= ns.UNIT_GROUP.NAMEPLATES then
-		return
-	end
-
-	local runtime = ns.RuntimeEnsure()
-	runtime.activeNameplates = runtime.activeNameplates or {}
-	if active then
-		runtime.activeNameplates[unit] = true
-	else
-		runtime.activeNameplates[unit] = nil
-		runtime.models[unit] = nil
 	end
 end
