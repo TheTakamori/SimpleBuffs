@@ -5,14 +5,17 @@ configurable displays. It is built for World of Warcraft Retail
 `12.0.5 (Midnight)` and uses Blizzard cooldown widgets for countdown text so
 the UI can display aura timers without custom combat-state calculations.
 
+Current version: `0.0.2`.
+
 ## Features
 
 - Shows player, target, focus, pet, vehicle, party, party pet, raid, raid pet,
   boss, arena, and arena pet buffs/debuffs by default.
 - Supports attached displays near stable Blizzard unit frames, including party
   frames when Blizzard exposes a usable anchor.
-- Provides standalone draggable grouped displays for units without attached
-  anchors or for users who prefer a custom placement.
+- Provides standalone grouped displays for units without attached anchors or
+  for users who prefer a custom placement. Unlocked standalone displays move
+  with Shift-drag.
 - Provides configurable icon size, spacing, layout, max aura count, sorting,
   and basic filtering.
 - Uses event-driven aura updates instead of constant polling.
@@ -22,7 +25,7 @@ the UI can display aura timers without custom combat-state calculations.
 
 - `/sbuff`: Open the Blizzard Settings panel.
 - `/sbuff lock`: Lock movable standalone displays.
-- `/sbuff unlock`: Unlock movable standalone displays.
+- `/sbuff unlock`: Unlock Shift-drag for standalone displays.
 - `/sbuff reset`: Reset settings to defaults.
 
 ## Installing
@@ -37,6 +40,7 @@ the UI can display aura timers without custom combat-state calculations.
 - Attached mode uses stable Blizzard frames for player, target, focus, pet, and
   party frames when available. Standalone grouped displays are used for units
   without reliable attached anchors.
+- Right-click the minimap button to lock or unlock standalone display dragging.
 
 ## License
 

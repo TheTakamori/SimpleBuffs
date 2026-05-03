@@ -70,19 +70,33 @@ return function(runner, ns)
 		assert.equal(db.minimap.hide, true)
 	end)
 
-	runner:test("InitDB migrates old saved variables", function()
+	runner:test("lock state toggles and persists", function()
 		_G.SimpleBuffsDB = nil
-		_G.PetFocusBuffsDB = {
-			appearance = {
-				iconSize = 34,
-			},
-		}
+		ns.InitDB()
 
-		local db = ns.InitDB()
+		assert.equal(ns.DB().locked, false)
+		assert.equal(ns.SetLocked(true), true)
+		assert.equal(ns.DB().locked, true)
+		assert.equal(ns.ToggleLocked(), false)
+		assert.equal(ns.DB().locked, false)
+	end)
 
-		assert.equal(db.appearance.iconSize, 34)
-		assert.equal(db.units.player.buff, true)
-		_G.PetFocusBuffsDB = nil
+	runner:test("standalone dragging requires unlocked state and Shift", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		rawset(_G, "IsShiftKeyDown", function()
+			return false
+		end)
+		assert.equal(ns.CanStartStandaloneDrag(), false)
+
+		rawset(_G, "IsShiftKeyDown", function()
+			return true
+		end)
+		assert.equal(ns.CanStartStandaloneDrag(), true)
+
+		ns.SetLocked(true)
+		assert.equal(ns.CanStartStandaloneDrag(), false)
 	end)
 
 	runner:test("SetAppearanceValue clamps numeric settings", function()

@@ -100,9 +100,6 @@ local function sanitize_db(db)
 end
 
 function ns.InitDB()
-	if not SimpleBuffsDB and PetFocusBuffsDB then
-		SimpleBuffsDB = copy_table(PetFocusBuffsDB, {})
-	end
 	SimpleBuffsDB = copy_table(ns.DEFAULTS, SimpleBuffsDB or {})
 	sanitize_db(SimpleBuffsDB)
 	return SimpleBuffsDB

@@ -2,7 +2,7 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.ADDON_NAME = "SimpleBuffs"
-ns.VERSION = "0.0.1"
+ns.VERSION = "0.0.2"
 ns.DB_VERSION = 1
 
 ns.SLASH_COMMANDS = {
@@ -134,8 +134,10 @@ ns.TEXT = {
 	LOADED = "Simple Buffs loaded. Use /sbuff for options.",
 	RESET = "Simple Buffs settings reset.",
 	LOCKED = "Simple Buffs frames locked.",
-	UNLOCKED = "Simple Buffs frames unlocked. Drag standalone frames to move them.",
+	UNLOCKED = "Simple Buffs frames unlocked. Hold Shift and drag standalone frames to move them.",
 	MINIMAP_TOOLTIP_OPEN = "Left-click to open options.",
+	MINIMAP_TOOLTIP_STATE = "Dragging: %s",
+	MINIMAP_TOOLTIP_LOCK = "Right-click to toggle frame dragging lock.",
 	MINIMAP_TOOLTIP_DRAG = "Drag to move this button.",
 }
 

@@ -70,6 +70,18 @@ local function on_leave()
 	end
 end
 
+local function on_drag_start(self)
+	if ns.StartStandaloneDrag then
+		ns.StartStandaloneDrag(self)
+	end
+end
+
+local function on_drag_stop(self)
+	if ns.StopStandaloneDrag then
+		ns.StopStandaloneDrag(self)
+	end
+end
+
 local function apply_icon(button, aura)
 	button.icon:SetTexture(QUESTION_MARK_ICON)
 	if not aura then
@@ -104,8 +116,11 @@ function ns.CreateAuraButton(parent)
 
 	button.auraTypeBorder = button:CreateTexture(nil, "BORDER")
 	button.auraTypeBorder:SetAllPoints()
+	button:RegisterForDrag("LeftButton")
 	button:SetScript("OnEnter", on_enter)
 	button:SetScript("OnLeave", on_leave)
+	button:SetScript("OnDragStart", on_drag_start)
+	button:SetScript("OnDragStop", on_drag_stop)
 
 	return button
 end

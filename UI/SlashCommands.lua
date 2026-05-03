@@ -22,15 +22,13 @@ local function show_help()
 	print_line("Simple Buffs commands:")
 	print_line("/sbuff - Open options")
 	print_line("/sbuff lock - Lock standalone displays")
-	print_line("/sbuff unlock - Unlock standalone displays")
+	print_line("/sbuff unlock - Unlock Shift-drag for standalone displays")
 	print_line("/sbuff reset - Reset settings")
 end
 
 function ns.RegisterSlashCommands()
 	SLASH_SIMPLEBUFFS1 = ns.SLASH_COMMANDS[1]
 	SLASH_SIMPLEBUFFS2 = nil
-	SLASH_PETFOCUSBUFFS1 = nil
-	SLASH_PETFOCUSBUFFS2 = nil
 	SlashCmdList.SIMPLEBUFFS = function(msg)
 		local command = (msg or ""):match("^%s*(%S*)")
 		command = command and command:lower() or ""

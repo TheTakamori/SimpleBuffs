@@ -15,16 +15,8 @@ local function build_panel()
 	local frame = CreateFrame("Frame", "SimpleBuffsOptionsPanel", UIParent)
 	frame.name = ns.TEXT.OPTIONS_TITLE
 	frame:SetSize(760, 560)
-
-	local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-	scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-	scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -28, 0)
-
-	local content = CreateFrame("Frame", nil, scroll)
-	content:SetSize(700, 620)
-	scroll:SetScrollChild(content)
-	frame.scroll = scroll
-	frame.content = content
+	frame.content = frame
+	local content = frame
 
 	ns.CreateOptionsLabel(content, ns.TEXT.OPTIONS_TITLE, -16, true)
 	local subtitle = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -50,7 +42,6 @@ local function build_panel()
 		y = y - UNIT_ROW_HEIGHT
 	end
 
-	local unitsBottomY = y
 	local displayY = -78
 	local styleY = displayY - 154
 	local showCountdownY = styleY - 234
@@ -114,8 +105,7 @@ local function build_panel()
 	end, function(value)
 		ns.SetAppearanceValue("showCounts", value)
 	end, RIGHT_COLUMN_X))
-	content:SetSize(700, math.max(math.abs(unitsBottomY), math.abs(showCountsY)) + 64)
-	function content:RefreshFromDB()
+	function frame:RefreshFromDB()
 		self.ignoreCallbacks = true
 		for _, child in ipairs(self.children or {}) do
 			if child.RefreshFromDB then
@@ -123,9 +113,6 @@ local function build_panel()
 			end
 		end
 		self.ignoreCallbacks = false
-	end
-	function frame:RefreshFromDB()
-		content:RefreshFromDB()
 	end
 
 	return frame

@@ -102,9 +102,20 @@ local function show_tooltip(button)
 	GameTooltip:SetOwner(button, "ANCHOR_LEFT")
 	GameTooltip:ClearLines()
 	GameTooltip:AddLine(ns.TEXT.OPTIONS_TITLE, 1, 0.82, 0)
+	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_STATE:format(ns.DB().locked and "Locked" or "Unlocked"), 1, 1, 1, true)
 	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_OPEN, 0.85, 0.85, 0.85, true)
+	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_LOCK, 0.85, 0.85, 0.85, true)
 	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_DRAG, 0.65, 0.65, 0.65, true)
 	GameTooltip:Show()
+end
+
+local function print_lock_state(locked)
+	local message = locked and ns.TEXT.LOCKED or ns.TEXT.UNLOCKED
+	if DEFAULT_CHAT_FRAME then
+		DEFAULT_CHAT_FRAME:AddMessage(message)
+	else
+		print(message)
+	end
 end
 
 function ns.EnsureMinimapButton()
@@ -121,7 +132,7 @@ function ns.EnsureMinimapButton()
 	button:SetFrameStrata("MEDIUM")
 	button:SetFrameLevel((Minimap:GetFrameLevel() or 0) + 8)
 	button:SetSize(ns.LIMITS.MINIMAP_BUTTON_SIZE, ns.LIMITS.MINIMAP_BUTTON_SIZE)
-	button:RegisterForClicks("LeftButtonUp")
+	button:RegisterForClicks("AnyUp")
 	button:RegisterForDrag("LeftButton")
 	button:SetHighlightTexture(ns.TEXTURE.MINIMAP_HIGHLIGHT, "ADD")
 
@@ -141,9 +152,18 @@ function ns.EnsureMinimapButton()
 	border:SetSize(ns.LIMITS.MINIMAP_BUTTON_OVERLAY_SIZE, ns.LIMITS.MINIMAP_BUTTON_OVERLAY_SIZE)
 	border:SetPoint("TOPLEFT", button, "TOPLEFT")
 
-	button:SetScript("OnClick", function(self)
+	button:SetScript("OnClick", function(self, buttonName)
 		if self.suppressNextClick then
 			self.suppressNextClick = nil
+			return
+		end
+		if buttonName == "RightButton" then
+			local locked = ns.ToggleLocked()
+			if ns.RefreshAllDisplays then
+				ns.RefreshAllDisplays()
+			end
+			print_lock_state(locked)
+			show_tooltip(self)
 			return
 		end
 		ns.OpenOptionsPanel()
