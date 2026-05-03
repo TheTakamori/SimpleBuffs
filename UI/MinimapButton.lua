@@ -89,6 +89,13 @@ local function update_drag_position(button)
 
 	local scale = Minimap:GetEffectiveScale()
 	local cursorX, cursorY = GetCursorPosition()
+	if button.dragStartX and button.dragStartY then
+		local deltaX = cursorX - button.dragStartX
+		local deltaY = cursorY - button.dragStartY
+		if (deltaX * deltaX) + (deltaY * deltaY) > ns.MINIMAP_MATH.DRAG_CLICK_THRESHOLD_SQUARED then
+			button.dragMoved = true
+		end
+	end
 	local centerX, centerY = Minimap:GetCenter()
 	centerX = (centerX or ns.NUMBER.ZERO) * scale
 	centerY = (centerY or ns.NUMBER.ZERO) * scale
@@ -102,7 +109,7 @@ local function show_tooltip(button)
 	GameTooltip:SetOwner(button, ns.UI.ANCHOR_LEFT)
 	GameTooltip:ClearLines()
 	GameTooltip:AddLine(ns.TEXT.OPTIONS_TITLE, ns.MINIMAP_MATH.TOOLTIP_TITLE_R, ns.MINIMAP_MATH.TOOLTIP_TITLE_G, ns.MINIMAP_MATH.TOOLTIP_TITLE_B)
-	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_STATE:format(ns.DB().locked and ns.TEXT.MINIMAP_TOOLTIP_LOCKED or ns.TEXT.MINIMAP_TOOLTIP_UNLOCKED), ns.MINIMAP_MATH.TOOLTIP_STATE_R, ns.MINIMAP_MATH.TOOLTIP_STATE_G, ns.MINIMAP_MATH.TOOLTIP_STATE_B, true)
+	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_STATE:format(ns.DB().locked and ns.TEXT.LOCK_STATE_LOCKED or ns.TEXT.LOCK_STATE_UNLOCKED), ns.MINIMAP_MATH.TOOLTIP_STATE_R, ns.MINIMAP_MATH.TOOLTIP_STATE_G, ns.MINIMAP_MATH.TOOLTIP_STATE_B, true)
 	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_OPEN, ns.MINIMAP_MATH.TOOLTIP_ACTION_R, ns.MINIMAP_MATH.TOOLTIP_ACTION_G, ns.MINIMAP_MATH.TOOLTIP_ACTION_B, true)
 	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_LOCK, ns.MINIMAP_MATH.TOOLTIP_ACTION_R, ns.MINIMAP_MATH.TOOLTIP_ACTION_G, ns.MINIMAP_MATH.TOOLTIP_ACTION_B, true)
 	GameTooltip:AddLine(ns.TEXT.MINIMAP_TOOLTIP_DRAG, ns.MINIMAP_MATH.TOOLTIP_DRAG_R, ns.MINIMAP_MATH.TOOLTIP_DRAG_G, ns.MINIMAP_MATH.TOOLTIP_DRAG_B, true)
@@ -162,6 +169,9 @@ function ns.EnsureMinimapButton()
 			if ns.RefreshAllDisplays then
 				ns.RefreshAllDisplays()
 			end
+			if ns.RefreshOptionsPanel then
+				ns.RefreshOptionsPanel()
+			end
 			print_lock_state(locked)
 			show_tooltip(self)
 			return
@@ -175,13 +185,20 @@ function ns.EnsureMinimapButton()
 		end
 	end)
 	button:SetScript(ns.UI.ON_DRAG_START, function(self)
-		self.suppressNextClick = true
+		self.dragMoved = nil
+		self.dragStartX, self.dragStartY = GetCursorPosition()
 		self:SetScript(ns.UI.ON_UPDATE, update_drag_position)
 	end)
 	button:SetScript(ns.UI.ON_DRAG_STOP, function(self)
 		self:SetScript(ns.UI.ON_UPDATE, nil)
 		update_drag_position(self)
 		ns.SetMinimapButtonAngle(self.currentAngle)
+		self.dragStartX = nil
+		self.dragStartY = nil
+		if self.dragMoved then
+			self.suppressNextClick = true
+			self.dragMoved = nil
+		end
 	end)
 
 	set_button_angle(button, ns.GetMinimapButtonAngle())

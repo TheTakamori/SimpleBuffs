@@ -1,27 +1,6 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
-local function refresh_displays()
-	if ns.RefreshAllDisplays then
-		ns.RefreshAllDisplays()
-	end
-end
-
-local function repaint_displays()
-	if ns.RepaintAllDisplays then
-		ns.RepaintAllDisplays()
-	else
-		refresh_displays()
-	end
-end
-
-local function run_refresh(refresh)
-	if refresh == false then
-		return
-	end
-	(refresh or refresh_displays)()
-end
-
 local function add_tooltip(frame, tooltip)
 	if not tooltip then
 		return
@@ -33,6 +12,27 @@ local function add_tooltip(frame, tooltip)
 		end
 		GameTooltip:SetOwner(self, ns.UI.ANCHOR_RIGHT)
 		GameTooltip:ClearLines()
+		if type(tooltip) == ns.LUA_TYPE.TABLE then
+			if tooltip.title then
+				GameTooltip:AddLine(
+					tooltip.title,
+					ns.OPTIONS_LAYOUT.TAB_TEXT_SELECTED_R,
+					ns.OPTIONS_LAYOUT.TAB_TEXT_SELECTED_G,
+					ns.OPTIONS_LAYOUT.TAB_TEXT_SELECTED_B
+				)
+			end
+			if tooltip.text then
+				GameTooltip:AddLine(
+					tooltip.text,
+					ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_R,
+					ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_G,
+					ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_B,
+					true
+				)
+			end
+			GameTooltip:Show()
+			return
+		end
 		GameTooltip:AddLine(
 			tooltip,
 			ns.OPTIONS_LAYOUT.TOOLTIP_COLOR_R,
@@ -46,6 +46,33 @@ local function add_tooltip(frame, tooltip)
 		if GameTooltip then
 			GameTooltip:Hide()
 		end
+	end)
+end
+
+function ns.CreateOptionsTooltipRegion(parent, x, y, width, height, tooltip)
+	if not tooltip then
+		return nil
+	end
+	local region = CreateFrame(ns.UI.FRAME, nil, parent)
+	region:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
+	region:SetSize(width, height)
+	add_tooltip(region, tooltip)
+	return region
+end
+
+local function schedule_slider_refresh(slider, refresh)
+	slider.refreshElapsed = ns.NUMBER.ZERO
+	slider.pendingRefresh = refresh
+	slider:SetScript(ns.UI.ON_UPDATE, function(self, elapsed)
+		self.refreshElapsed = (self.refreshElapsed or ns.NUMBER.ZERO) + elapsed
+		if self.refreshElapsed < ns.OPTIONS_LAYOUT.SLIDER_REFRESH_DELAY then
+			return
+		end
+		local pendingRefresh = self.pendingRefresh
+		self.pendingRefresh = nil
+		self.refreshElapsed = nil
+		self:SetScript(ns.UI.ON_UPDATE, nil)
+		ns.RunOptionsRefresh(pendingRefresh)
 	end)
 end
 
@@ -70,23 +97,27 @@ function ns.CreateOptionsRowLabel(parent, text, x, y)
 	return label
 end
 
-function ns.CreateOptionsCheck(parent, text, y, getter, setter, x, refresh)
+function ns.CreateOptionsCheck(parent, text, y, getter, setter, x, refresh, tooltip)
 	local check = CreateFrame(ns.UI.CHECK_BUTTON, nil, parent, ns.UI.UICHECK_BUTTON_TEMPLATE)
 	check:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x or ns.OPTIONS_LAYOUT.SUBTITLE_X, y)
 	check.Text = check.Text or check:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
 	check.Text:SetPoint(ns.UI.ANCHOR_LEFT, check, ns.UI.ANCHOR_RIGHT, ns.OPTIONS_LAYOUT.CHECK_LABEL_OFFSET_X, ns.OPTIONS_LAYOUT.CHECK_LABEL_OFFSET_Y)
 	check.Text:SetText(text)
+	if tooltip and check.SetHitRectInsets then
+		check:SetHitRectInsets(ns.NUMBER.ZERO, -ns.OPTIONS_LAYOUT.CHECK_TOOLTIP_HIT_RECT_RIGHT, ns.NUMBER.ZERO, ns.NUMBER.ZERO)
+	end
 	check:SetScript(ns.UI.ON_CLICK, function(self)
 		if parent.ignoreCallbacks then
 			return
 		end
 		setter(self:GetChecked() == true)
-		run_refresh(refresh)
+		ns.RunOptionsRefresh(refresh)
 		parent:RefreshFromDB()
 	end)
 	check.RefreshFromDB = function(self)
 		self:SetChecked(getter() == true)
 	end
+	add_tooltip(check, tooltip)
 	return check
 end
 
@@ -120,7 +151,7 @@ function ns.CreateOptionsDropdownOnRow(parent, x, y, width, values, getter, sett
 			return
 		end
 		setter(value)
-		run_refresh(refresh)
+		ns.RunOptionsRefresh(refresh)
 		parent:RefreshFromDB()
 	end
 	if dropdown.SetDefaultText then
@@ -156,7 +187,7 @@ function ns.CreateOptionsButton(parent, text, x, y, width, onClick, refresh, ref
 			return
 		end
 		onClick(self)
-		run_refresh(refreshDisplays)
+		ns.RunOptionsRefresh(refreshDisplays)
 		parent:RefreshFromDB()
 	end)
 	if refresh then
@@ -180,6 +211,12 @@ function ns.CreateOptionsSlider(parent, text, y, minValue, maxValue, step, gette
 	slider.Text:SetJustifyH(ns.UI.ANCHOR_LEFT)
 	slider.Text:SetPoint(ns.UI.ANCHOR_RIGHT, slider, ns.UI.ANCHOR_LEFT, -ns.OPTIONS_LAYOUT.SLIDER_LABEL_GAP_X, ns.NUMBER.ZERO)
 	slider.Text:SetText(text)
+	if tooltip then
+		local titleHover = CreateFrame(ns.UI.FRAME, nil, parent)
+		titleHover:SetPoint(ns.UI.ANCHOR_RIGHT, slider, ns.UI.ANCHOR_LEFT, -ns.OPTIONS_LAYOUT.SLIDER_LABEL_GAP_X, ns.NUMBER.ZERO)
+		titleHover:SetSize(ns.OPTIONS_LAYOUT.SLIDER_LABEL_WIDTH, ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_HEIGHT)
+		add_tooltip(titleHover, tooltip)
+	end
 	slider.Low:SetText(tostring(minValue))
 	slider.High:SetText(tostring(maxValue))
 	slider.ValueText = parent:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
@@ -194,7 +231,7 @@ function ns.CreateOptionsSlider(parent, text, y, minValue, maxValue, step, gette
 			return
 		end
 		self.ValueText:SetText(formatter and formatter(value) or tostring(math.floor(value)))
-		run_refresh(refresh or repaint_displays)
+		schedule_slider_refresh(self, refresh or ns.RepaintOptionsDisplays)
 	end)
 	slider.RefreshFromDB = function(self)
 		local value = getter()

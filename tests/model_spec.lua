@@ -20,7 +20,7 @@ return function(runner, ns)
 		assert.equal(ns.BuildAuraKey("focus", ns.AURA_TYPE.DEBUFF, 42), "focus:debuff:42")
 	end)
 
-	runner:test("RefreshUnitModel tracks added and removed aura keys", function()
+	runner:test("RefreshUnitModel rebuilds stable aura rows", function()
 		_G.SimpleBuffsDB = nil
 		ns.Runtime = nil
 		ns.InitDB()
@@ -51,8 +51,6 @@ return function(runner, ns)
 
 		assert.equal(#second.buff.rows, 1)
 		assert.equal(second.buff.rows[1].key, "focus:buff:2")
-		assert.equal(#second.buff.removedKeys, 1)
-		assert.equal(second.buff.removedKeys[1], "focus:buff:1")
 	end)
 
 	runner:test("RefreshUnitModel ignores untracked units", function()
@@ -61,5 +59,18 @@ return function(runner, ns)
 		ns.InitDB()
 
 		assert.equal(ns.RefreshUnitModel("targettarget"), nil)
+	end)
+
+	runner:test("MarkUnitDirty queues each tracked unit once", function()
+		ns.Runtime = nil
+		ns.RuntimeEnsure()
+
+		ns.MarkUnitDirty("player")
+		ns.MarkUnitDirty("player")
+		ns.MarkUnitDirty("targettarget")
+
+		assert.equal(ns.Runtime.dirtyUnits.player, true)
+		assert.equal(#ns.Runtime.dirtyUnitList, 1)
+		assert.equal(ns.Runtime.dirtyUnitList[1], "player")
 	end)
 end

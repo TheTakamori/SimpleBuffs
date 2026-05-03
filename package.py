@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
+import re
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 ROOT = Path(__file__).resolve().parent
 ADDON_NAME = "SimpleBuffs"
-VERSION = "0.1.0"
+CONSTANTS = ROOT / "Core" / "Constants.lua"
+TOC = ROOT / f"{ADDON_NAME}.toc"
+VERSION = re.search(r'ns\.VERSION\s*=\s*"([^"]+)"', CONSTANTS.read_text()).group(1)
 OUTPUT = ROOT / f"{ADDON_NAME}-{VERSION}.zip"
-EXCLUDED_DIRS = {".git", "__pycache__", "build", "dist", "release", "tests"}
+EXCLUDED_DIRS = {".git", "__pycache__", "build", "dist", "release", "releases", "tests"}
 EXCLUDED_FILES = {".gitignore", "CURSEFORGE_SUBMISSION.md", "package.py"}
+
+toc_version = re.search(r"^## Version:\s*(.+)$", TOC.read_text(), re.MULTILINE).group(1)
+if toc_version != VERSION:
+    raise SystemExit(f"Version mismatch: {TOC.name} has {toc_version}, Constants.lua has {VERSION}")
 
 
 def should_package(path: Path) -> bool:

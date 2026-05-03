@@ -37,6 +37,21 @@ local function raise_attached_frame(frame, anchor)
 	end
 end
 
+local function get_attached_position(unit, overridePosition)
+	local attachedPosition = ns.GetUnitAttachedPosition(unit)
+	local saved = ns.GetAttachedPosition(unit) or ns.GetDefaultAttachedPosition()
+	local x = (overridePosition and overridePosition.x) or saved.x
+	local y = (overridePosition and overridePosition.y) or saved.y
+	if attachedPosition == ns.ATTACHED_POSITION.ABOVE then
+		return ns.UI.ANCHOR_BOTTOMLEFT, ns.UI.ANCHOR_TOPLEFT, x, -y
+	elseif attachedPosition == ns.ATTACHED_POSITION.RIGHT then
+		return ns.UI.ANCHOR_TOPLEFT, ns.UI.ANCHOR_TOPRIGHT, x, y
+	elseif attachedPosition == ns.ATTACHED_POSITION.LEFT then
+		return ns.UI.ANCHOR_TOPRIGHT, ns.UI.ANCHOR_TOPLEFT, -x, y
+	end
+	return ns.UI.ANCHOR_TOPLEFT, ns.UI.ANCHOR_BOTTOMLEFT, x, y
+end
+
 local function place_frame(frame, unit, mode)
 	frame:ClearAllPoints()
 	if mode == MODE_ATTACHED then
@@ -45,10 +60,10 @@ local function place_frame(frame, unit, mode)
 			frame:Hide()
 			return false
 		end
-		local saved = overridePosition or ns.GetAttachedPosition(unit) or ns.GetDefaultAttachedPosition()
+		local point, relativePoint, x, y = get_attached_position(unit, overridePosition)
 		frame:SetParent(anchor)
 		raise_attached_frame(frame, anchor)
-		frame:SetPoint(saved.point, anchor, saved.relativePoint, saved.x, saved.y)
+		frame:SetPoint(point, anchor, relativePoint, x, y)
 		return true
 	end
 
@@ -158,6 +173,29 @@ function ns.RefreshAndUpdateUnit(unit)
 	ns.UpdateUnitDisplays(unit, true)
 end
 
+function ns.RefreshAndUpdateDirtyUnits()
+	local runtime = ns.RuntimeEnsure()
+	local didUpdate = false
+	if ns.BeginAttachedAnchorCache then
+		ns.BeginAttachedAnchorCache()
+	end
+	for index = 1, #runtime.dirtyUnitList do
+		local unit = runtime.dirtyUnitList[index]
+		if runtime.dirtyUnits[unit] then
+			ns.UpdateUnitDisplays(unit, true)
+			didUpdate = true
+		end
+		runtime.dirtyUnitList[index] = nil
+	end
+	if ns.EndAttachedAnchorCache then
+		ns.EndAttachedAnchorCache()
+	end
+	if didUpdate then
+		ns.LayoutStandaloneContainers()
+	end
+	return didUpdate
+end
+
 function ns.RepaintAllDisplays()
 	if ns.BeginAttachedAnchorCache then
 		ns.BeginAttachedAnchorCache()
@@ -173,7 +211,7 @@ end
 
 function ns.LayoutStandaloneContainers()
 	local runtime = ns.RuntimeEnsure()
-	local appearance = ns.GetAppearance()
+	local globalAppearance = ns.GetAppearance()
 
 	for containerKey, container in pairs(runtime.containers) do
 		place_container(container)
@@ -192,17 +230,17 @@ function ns.LayoutStandaloneContainers()
 				frame:ClearAllPoints()
 				frame:SetPoint(ns.UI.ANCHOR_TOPLEFT, container, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
 				local width = frame:GetWidth() or ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
-				local height = frame:GetHeight() or appearance.iconSize
+				local height = frame:GetHeight() or ns.GetUnitGroupAppearance(ns.GetUnitGroup(unit) or unit).iconSize
 				if width > maxWidth then
 					maxWidth = width
 				end
-				y = y - height - appearance.rowSpacing
-				totalHeight = totalHeight + height + appearance.rowSpacing
+				y = y - height - globalAppearance.rowSpacing
+				totalHeight = totalHeight + height + globalAppearance.rowSpacing
 				visibleCount = visibleCount + ns.NUMBER.ONE
 			end
 		end)
 
-		container:SetSize(math.max(maxWidth, ns.DISPLAY_FRAME.MIN_WIDTH), math.max(totalHeight, appearance.iconSize))
+		container:SetSize(math.max(maxWidth, ns.DISPLAY_FRAME.MIN_WIDTH), math.max(totalHeight, ns.DEFAULTS.appearance.iconSize))
 		container:SetShown(visibleCount > ns.NUMBER.ZERO)
 	end
 end

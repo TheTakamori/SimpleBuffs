@@ -5,79 +5,7 @@ local panelState = {
 	frame = nil,
 	category = nil,
 	categoryID = nil,
-}
-
-local function refresh_displays()
-	if ns.RefreshAllDisplays then
-		ns.RefreshAllDisplays()
-	end
-end
-
-local function repaint_displays()
-	if ns.RepaintAllDisplays then
-		ns.RepaintAllDisplays()
-	else
-		refresh_displays()
-	end
-end
-
-local UNIT_DROPDOWN_COLUMNS = {
-	{
-		header = ns.TEXT.OPTIONS_MODE,
-		x = ns.OPTIONS_LAYOUT.MODE_COLUMN_X,
-		values = function(groupKey)
-			return ns.GetUnitGroupDisplayModes(groupKey)
-		end,
-		get = function(groupKey)
-			return ns.GetUnitGroupDisplayMode(groupKey)
-		end,
-		set = function(groupKey, value)
-			ns.SetUnitGroupDisplayMode(groupKey, value)
-		end,
-		labels = ns.DISPLAY_MODE_LABEL,
-		tooltip = ns.TEXT.OPTIONS_TOOLTIP_MODE,
-		refresh = repaint_displays,
-	},
-	{
-		header = ns.TEXT.OPTIONS_LAYOUT,
-		x = ns.OPTIONS_LAYOUT.LAYOUT_COLUMN_X,
-		values = ns.LAYOUT_ORDER,
-		get = function(groupKey)
-			return ns.GetUnitGroupLayout(groupKey)
-		end,
-		set = function(groupKey, value)
-			ns.SetUnitGroupLayout(groupKey, value)
-		end,
-		labels = ns.LAYOUT_LABEL,
-		tooltip = ns.TEXT.OPTIONS_TOOLTIP_LAYOUT,
-		refresh = repaint_displays,
-	},
-	{
-		header = ns.TEXT.OPTIONS_SORT,
-		x = ns.OPTIONS_LAYOUT.SORT_COLUMN_X,
-		values = ns.SORT_RULE_ORDER,
-		get = function(groupKey)
-			return ns.GetUnitGroupSortRule(groupKey)
-		end,
-		set = function(groupKey, value)
-			ns.SetUnitGroupSortRule(groupKey, value)
-		end,
-		labels = ns.SORT_RULE_LABEL,
-		tooltip = ns.TEXT.OPTIONS_TOOLTIP_SORT,
-	},
-	{
-		header = ns.TEXT.OPTIONS_FILTER,
-		x = ns.OPTIONS_LAYOUT.FILTER_COLUMN_X,
-		values = ns.FILTER_MODE_ORDER,
-		get = function(groupKey)
-			return ns.GetUnitGroupFilterMode(groupKey)
-		end,
-		set = function(groupKey, value)
-			ns.SetUnitGroupFilterMode(groupKey, value)
-		end,
-		labels = ns.FILTER_MODE_LABEL,
-		tooltip = ns.TEXT.OPTIONS_TOOLTIP_FILTER,
-	},
+	selectedGroup = nil,
 }
 
 local function register_reset_confirmation(frame)
@@ -91,7 +19,7 @@ local function register_reset_confirmation(frame)
 		button2 = CANCEL,
 		OnAccept = function()
 			ns.ResetDB()
-			refresh_displays()
+			ns.RefreshOptionsDisplays()
 			frame:RefreshFromDB()
 		end,
 		timeout = ns.OPTIONS_LAYOUT.POPUP_TIMEOUT,
@@ -109,23 +37,8 @@ local function confirm_reset_defaults(frame)
 	end
 
 	ns.ResetDB()
-	refresh_displays()
+	ns.RefreshOptionsDisplays()
 	frame:RefreshFromDB()
-end
-
-local function create_standalone_move_hint(parent, x, y)
-	local label = parent:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
-	label:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
-	label:SetWidth(ns.OPTIONS_LAYOUT.MOVE_HINT_WIDTH)
-	label:SetText(ns.TEXT.OPTIONS_STANDALONE_MOVE_HELP)
-	label.RefreshFromDB = function(self)
-		if ns.AnyUnitGroupUsesStandaloneDisplay() then
-			self:Show()
-		else
-			self:Hide()
-		end
-	end
-	return label
 end
 
 local function create_options_content(frame)
@@ -136,13 +49,6 @@ local function create_options_content(frame)
 		frame:RefreshFromDB()
 	end
 	return content
-end
-
-local function create_centered_header(parent, text, x, y, width)
-	local label = ns.CreateOptionsLabelAt(parent, text, x, y)
-	label:SetWidth(width)
-	label:SetJustifyH(ns.UI.ANCHOR_CENTER)
-	return label
 end
 
 local function open_legacy_options_category(frame)
@@ -162,117 +68,62 @@ local function build_panel()
 	version:SetWidth(ns.OPTIONS_LAYOUT.VERSION_WIDTH)
 	version:SetJustifyH(ns.UI.ANCHOR_RIGHT)
 	version:SetText(string.format(ns.TEXT.OPTIONS_VERSION_FORMAT, ns.VERSION))
-	local resetButton = ns.CreateOptionsButton(frame, ns.TEXT.OPTIONS_RESET_DEFAULTS, ns.NUMBER.ZERO, ns.OPTIONS_LAYOUT.RESET_BUTTON_Y, ns.OPTIONS_LAYOUT.RESET_BUTTON_WIDTH, function()
-		confirm_reset_defaults(frame)
-	end, nil, false)
-	resetButton:ClearAllPoints()
-	resetButton:SetPoint(ns.UI.ANCHOR_TOPRIGHT, frame, ns.UI.ANCHOR_TOPRIGHT, ns.OPTIONS_LAYOUT.RESET_BUTTON_RIGHT_X, ns.OPTIONS_LAYOUT.RESET_BUTTON_Y)
 	local subtitle = frame:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
 	subtitle:SetPoint(ns.UI.ANCHOR_TOPLEFT, frame, ns.UI.ANCHOR_TOPLEFT, ns.OPTIONS_LAYOUT.SUBTITLE_X, ns.OPTIONS_LAYOUT.SUBTITLE_Y)
 	subtitle:SetText(ns.TEXT.OPTIONS_SUBTITLE)
 
 	local content = create_options_content(frame)
 	frame.content = content
+	content.tabs = {}
+	local divider = content:CreateTexture(nil, ns.UI.ARTWORK)
+	divider:SetPoint(ns.UI.ANCHOR_TOPLEFT, content, ns.UI.ANCHOR_TOPLEFT, ns.OPTIONS_LAYOUT.TAB_DIVIDER_X, ns.OPTIONS_LAYOUT.TAB_DIVIDER_TOP_Y)
+	divider:SetSize(ns.NUMBER.ONE, ns.OPTIONS_LAYOUT.TAB_DIVIDER_HEIGHT)
+	divider:SetColorTexture(
+		ns.OPTIONS_LAYOUT.TAB_DIVIDER_R,
+		ns.OPTIONS_LAYOUT.TAB_DIVIDER_G,
+		ns.OPTIONS_LAYOUT.TAB_DIVIDER_B,
+		ns.OPTIONS_LAYOUT.TAB_DIVIDER_A
+	)
 
-	ns.CreateOptionsLabelAt(content, ns.TEXT.OPTIONS_UNIT_GROUP, ns.OPTIONS_LAYOUT.UNIT_LABEL_X, ns.OPTIONS_LAYOUT.UNIT_HEADER_Y)
-	ns.CreateOptionsLabelAt(content, ns.TEXT.OPTIONS_BUFFS, ns.OPTIONS_LAYOUT.BUFF_COLUMN_X, ns.OPTIONS_LAYOUT.UNIT_HEADER_Y)
-	ns.CreateOptionsLabelAt(content, ns.TEXT.OPTIONS_DEBUFFS, ns.OPTIONS_LAYOUT.DEBUFF_COLUMN_X, ns.OPTIONS_LAYOUT.UNIT_HEADER_Y)
-	for index = 1, #UNIT_DROPDOWN_COLUMNS do
-		local column = UNIT_DROPDOWN_COLUMNS[index]
-		create_centered_header(content, column.header, column.x, ns.OPTIONS_LAYOUT.UNIT_HEADER_Y, ns.OPTIONS_LAYOUT.UNIT_DROPDOWN_WIDTH)
-	end
-	local y = ns.OPTIONS_LAYOUT.UNIT_ROW_START_Y
+	panelState.selectedGroup = panelState.selectedGroup or ns.UNIT_GROUP_ORDER[ns.NUMBER.ONE]
+	local y = ns.OPTIONS_LAYOUT.TAB_BUTTON_START_Y
 	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
-		ns.CreateOptionsRowLabel(content, ns.UNIT_GROUP_LABEL[groupKey] or groupKey, ns.OPTIONS_LAYOUT.UNIT_LABEL_X, y)
-		ns.RegisterOptionsChild(content, ns.CreateOptionsCheckOnRow(content, ns.TEXT.EMPTY, ns.OPTIONS_LAYOUT.BUFF_COLUMN_X, y, function()
-			return ns.GetUnitGroupOptions(groupKey).buff
-		end, function(value)
-			ns.SetUnitGroupAuraEnabled(groupKey, ns.AURA_TYPE.BUFF, value)
-		end))
-		ns.RegisterOptionsChild(content, ns.CreateOptionsCheckOnRow(content, ns.TEXT.EMPTY, ns.OPTIONS_LAYOUT.DEBUFF_COLUMN_X, y, function()
-			return ns.GetUnitGroupOptions(groupKey).debuff
-		end, function(value)
-			ns.SetUnitGroupAuraEnabled(groupKey, ns.AURA_TYPE.DEBUFF, value)
-		end))
-		for index = 1, #UNIT_DROPDOWN_COLUMNS do
-			local column = UNIT_DROPDOWN_COLUMNS[index]
-			local values = type(column.values) == ns.LUA_TYPE.FUNCTION and column.values(groupKey) or column.values
-			ns.RegisterOptionsChild(content, ns.CreateOptionsDropdownOnRow(
-				content,
-				column.x,
-				y,
-				ns.OPTIONS_LAYOUT.UNIT_DROPDOWN_WIDTH,
-				values,
-				function()
-					return column.get(groupKey)
-				end,
-				function(value)
-					column.set(groupKey, value)
-				end,
-				column.labels,
-				column.tooltip,
-				column.refresh
-			))
-		end
-		y = y - ns.OPTIONS_LAYOUT.UNIT_ROW_HEIGHT
+		ns.RegisterOptionsChild(content, ns.CreateUnitTabButton(content, groupKey, y, panelState))
+		local tab = ns.CreateOptionsGroupTab(content, groupKey, panelState)
+		content.tabs[#content.tabs + 1] = tab
+		ns.RegisterOptionsChild(content, tab)
+		y = y - ns.OPTIONS_LAYOUT.TAB_BUTTON_GAP_Y
 	end
 	local buttonY = y - ns.OPTIONS_LAYOUT.UNIT_BUTTON_GAP_Y
-	ns.RegisterOptionsChild(content, ns.CreateOptionsButton(content, ns.TEXT.OPTIONS_DISABLE_ALL, ns.OPTIONS_LAYOUT.UNIT_LABEL_X, buttonY, ns.OPTIONS_LAYOUT.UNIT_TOGGLE_BUTTON_WIDTH, function()
+	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, ns.TEXT.LOCK_STATE_LOCKED, buttonY, function()
+		return ns.DB().locked
+	end, function(value)
+		ns.SetLocked(value)
+	end, ns.OPTIONS_LAYOUT.TAB_SIDEBAR_X, ns.RefreshOptionsDisplays, {
+		title = ns.TEXT.LOCK_STATE_LOCKED,
+		text = ns.TEXT.OPTIONS_TOOLTIP_LOCKED,
+	}))
+	buttonY = buttonY - ns.OPTIONS_LAYOUT.TAB_LOCK_BUTTON_GAP_Y
+	ns.RegisterOptionsChild(content, ns.CreateOptionsButton(content, ns.TEXT.OPTIONS_DISABLE_ALL, ns.OPTIONS_LAYOUT.TAB_SIDEBAR_X, buttonY, ns.OPTIONS_LAYOUT.TAB_BUTTON_WIDTH, function()
 		ns.SetAllUnitAurasEnabled(not ns.AreAllUnitAurasEnabled())
 	end, function(self)
 		self:SetText(ns.AreAllUnitAurasEnabled() and ns.TEXT.OPTIONS_DISABLE_ALL or ns.TEXT.OPTIONS_ENABLE_ALL)
 	end))
-
-	local styleY = buttonY - ns.OPTIONS_LAYOUT.GLOBAL_OPTIONS_GAP_Y
-	local showCountdownY = styleY - ns.OPTIONS_LAYOUT.STYLE_CHECK_START_OFFSET_Y
-	local showSwipeY = showCountdownY - ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y
-	local showCountsY = showSwipeY - ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y
-
-	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, ns.TEXT.OPTIONS_ICON_SIZE, styleY - ns.OPTIONS_LAYOUT.SLIDER_ICON_SIZE_OFFSET_Y, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, ns.OPTIONS_LAYOUT.SLIDER_STEP, function()
-		return ns.GetAppearance().iconSize
-	end, function(value)
-		ns.SetAppearanceValue(ns.DB_KEY.ICON_SIZE, value)
-	end, nil, ns.OPTIONS_LAYOUT.GLOBAL_OPTIONS_X + ns.OPTIONS_LAYOUT.SLIDER_COLUMN_INSET, ns.TEXT.OPTIONS_TOOLTIP_ICON_SIZE, repaint_displays))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, ns.TEXT.OPTIONS_SPACING, styleY - ns.OPTIONS_LAYOUT.SLIDER_SPACING_OFFSET_Y, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.OPTIONS_LAYOUT.SLIDER_STEP, function()
-		return ns.GetAppearance().spacing
-	end, function(value)
-		ns.SetAppearanceValue(ns.DB_KEY.SPACING, value)
-	end, nil, ns.OPTIONS_LAYOUT.GLOBAL_OPTIONS_X + ns.OPTIONS_LAYOUT.SLIDER_COLUMN_INSET, ns.TEXT.OPTIONS_TOOLTIP_SPACING, repaint_displays))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, ns.TEXT.OPTIONS_MAX_AURAS, styleY - ns.OPTIONS_LAYOUT.SLIDER_MAX_AURAS_OFFSET_Y, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, ns.OPTIONS_LAYOUT.SLIDER_STEP, function()
-		return ns.GetAppearance().maxAuras
-	end, function(value)
-		ns.SetAppearanceValue(ns.DB_KEY.MAX_AURAS, value)
-	end, nil, ns.OPTIONS_LAYOUT.GLOBAL_OPTIONS_X + ns.OPTIONS_LAYOUT.SLIDER_COLUMN_INSET, ns.TEXT.OPTIONS_TOOLTIP_MAX_AURAS))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsSlider(content, ns.TEXT.OPTIONS_SCALE, styleY - ns.OPTIONS_LAYOUT.SLIDER_SCALE_OFFSET_Y, ns.LIMITS.SCALE_MIN * ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER, ns.LIMITS.SCALE_MAX * ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER, ns.OPTIONS_LAYOUT.SCALE_STEP_PERCENT, function()
-		return ns.GetAppearance().scale * ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER
-	end, function(value)
-		ns.SetAppearanceValue(ns.DB_KEY.SCALE, value / ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER)
-	end, function(value)
-		return tostring(math.floor(value)) .. ns.TEXT.PERCENT
-	end, ns.OPTIONS_LAYOUT.GLOBAL_OPTIONS_X + ns.OPTIONS_LAYOUT.SLIDER_COLUMN_INSET, ns.TEXT.OPTIONS_TOOLTIP_SCALE, repaint_displays))
-
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, ns.TEXT.OPTIONS_SHOW_COUNTDOWN, showCountdownY, function()
-		return ns.GetAppearance().showCountdown
-	end, function(value)
-		ns.SetAppearanceValue(ns.DB_KEY.SHOW_COUNTDOWN, value)
-	end, ns.OPTIONS_LAYOUT.STYLE_CHECK_COLUMN_X, repaint_displays))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, ns.TEXT.OPTIONS_SHOW_SWIPE, showSwipeY, function()
-		return ns.GetAppearance().showSwipe
-	end, function(value)
-		ns.SetAppearanceValue(ns.DB_KEY.SHOW_SWIPE, value)
-	end, ns.OPTIONS_LAYOUT.STYLE_CHECK_COLUMN_X, repaint_displays))
-	ns.RegisterOptionsChild(content, ns.CreateOptionsCheck(content, ns.TEXT.OPTIONS_SHOW_COUNTS, showCountsY, function()
-		return ns.GetAppearance().showCounts
-	end, function(value)
-		ns.SetAppearanceValue(ns.DB_KEY.SHOW_COUNTS, value)
-	end, ns.OPTIONS_LAYOUT.STYLE_CHECK_COLUMN_X, repaint_displays))
-	ns.RegisterOptionsChild(content, create_standalone_move_hint(content, ns.OPTIONS_LAYOUT.MOVE_HINT_X, buttonY))
+	ns.RegisterOptionsChild(content, ns.CreateOptionsButton(content, ns.TEXT.OPTIONS_RESET_DEFAULTS, ns.OPTIONS_LAYOUT.TAB_SIDEBAR_X, buttonY - ns.OPTIONS_LAYOUT.TAB_ACTION_BUTTON_GAP_Y, ns.OPTIONS_LAYOUT.TAB_BUTTON_WIDTH, function()
+		confirm_reset_defaults(frame)
+	end, nil, false))
 	function frame:RefreshFromDB()
 		content.ignoreCallbacks = true
+		for _, tab in ipairs(content.tabs or {}) do
+			tab.ignoreCallbacks = true
+		end
 		for _, child in ipairs(content.children or {}) do
 			if child.RefreshFromDB then
 				child:RefreshFromDB()
 			end
+		end
+		for _, tab in ipairs(content.tabs or {}) do
+			tab.ignoreCallbacks = false
 		end
 		content.ignoreCallbacks = false
 	end
@@ -305,6 +156,14 @@ function ns.EnsureOptionsPanel()
 
 	frame:RefreshFromDB()
 	return frame
+end
+
+function ns.RefreshOptionsPanel()
+	if not panelState.frame then
+		return false
+	end
+	panelState.frame:RefreshFromDB()
+	return true
 end
 
 function ns.OpenOptionsPanel()

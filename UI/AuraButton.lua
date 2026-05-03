@@ -5,18 +5,19 @@ local function set_count_text(button, entry, appearance)
 	if not button.count then
 		return
 	end
+	local text = ns.TEXT.EMPTY
 	if not appearance.showCounts then
-		button.count:SetText("")
-		return
+		text = ns.TEXT.EMPTY
+	elseif entry.applicationDisplayCount then
+		text = entry.applicationDisplayCount
+	else
+		local applications = entry.aura and entry.aura.applications
+		text = applications or ns.TEXT.EMPTY
 	end
-
-	if entry.applicationDisplayCount then
-		button.count:SetText(entry.applicationDisplayCount)
-		return
+	if button.countText ~= text then
+		button.countText = text
+		button.count:SetText(text)
 	end
-
-	local applications = entry.aura and entry.aura.applications
-	button.count:SetText(applications and tostring(applications) or "")
 end
 
 local function set_cooldown(button, entry, appearance)

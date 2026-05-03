@@ -11,6 +11,7 @@ local function get_or_create_row(frame, auraType)
 	row.buttons = {}
 	row.freeButtons = {}
 	row.activeKeys = {}
+	row.staleKeys = {}
 	frame.rows[auraType] = row
 	return row
 end
@@ -54,16 +55,26 @@ function ns.UpdateAuraDisplayRow(row, model, appearance, layout)
 		row.activeKeys[entries[index].key] = true
 	end
 
-	for key, button in pairs(row.buttons) do
+	row.staleKeys = row.staleKeys or {}
+	for index = 1, #row.staleKeys do
+		row.staleKeys[index] = nil
+	end
+	for key in pairs(row.buttons) do
 		if not row.activeKeys[key] then
-			row.buttons[key] = nil
-			button:Hide()
-			button.entry = nil
-			button.entryKey = nil
-			button.unit = nil
-			button.auraType = nil
-			row.freeButtons[#row.freeButtons + 1] = button
+			row.staleKeys[#row.staleKeys + 1] = key
 		end
+	end
+	for index = 1, #row.staleKeys do
+		local key = row.staleKeys[index]
+		local button = row.buttons[key]
+		row.buttons[key] = nil
+		button:Hide()
+		button.entry = nil
+		button.entryKey = nil
+		button.unit = nil
+		button.auraType = nil
+		row.freeButtons[#row.freeButtons + 1] = button
+		row.staleKeys[index] = nil
 	end
 
 	for index = 1, #entries do
@@ -82,7 +93,7 @@ function ns.UpdateAuraDisplayRow(row, model, appearance, layout)
 end
 
 function ns.UpdateAuraDisplayFrame(frame, model)
-	local appearance = ns.GetAppearance()
+	local appearance = ns.GetUnitAppearance(frame.unit)
 	local layout = ns.GetUnitLayout(frame.unit)
 	local y = ns.LAYOUT_METRIC.ORIGIN_Y
 	local maxWidth = ns.LAYOUT_METRIC.MIN_SIZE

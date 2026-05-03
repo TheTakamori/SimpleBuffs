@@ -1,17 +1,18 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
+local UNKNOWN_KEY_PART = "unknown"
+
 local function build_key(unit, auraType, auraInstanceID, fallbackIndex)
-	return (unit or "unknown") .. ":" .. (auraType or "unknown") .. ":" .. tostring(auraInstanceID or fallbackIndex or "unknown")
+	return (unit or UNKNOWN_KEY_PART) .. ":" .. (auraType or UNKNOWN_KEY_PART) .. ":" .. tostring(auraInstanceID or fallbackIndex or UNKNOWN_KEY_PART)
 end
 
-local function build_type_model(unit, auraType, scanRows, previous)
+local function build_type_model(unit, auraType, scanRows)
 	local model = {
 		unit = unit,
 		auraType = auraType,
 		rows = {},
 		byKey = {},
-		removedKeys = {},
 	}
 
 	for index = 1, #(scanRows or {}) do
@@ -31,12 +32,6 @@ local function build_type_model(unit, auraType, scanRows, previous)
 		model.byKey[key] = entry
 	end
 
-	for key in pairs((previous and previous.byKey) or {}) do
-		if not model.byKey[key] then
-			model.removedKeys[#model.removedKeys + 1] = key
-		end
-	end
-
 	return model
 end
 
@@ -50,14 +45,13 @@ function ns.RefreshUnitModel(unit)
 	end
 
 	local runtime = ns.RuntimeEnsure()
-	local previous = runtime.models[unit] or {}
 	local scans = ns.ScanUnitAuras(unit)
 	local nextModel = {
 		unit = unit,
 	}
 
 	for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
-		nextModel[auraType] = build_type_model(unit, auraType, scans[auraType], previous[auraType])
+		nextModel[auraType] = build_type_model(unit, auraType, scans[auraType])
 	end
 
 	runtime.models[unit] = nextModel
@@ -80,14 +74,10 @@ function ns.MarkUnitDirty(unit)
 	if not ns.IsTrackedUnit(unit) then
 		return
 	end
-	ns.RuntimeEnsure().dirtyUnits[unit] = true
-end
-
-function ns.RefreshDirtyModels()
 	local runtime = ns.RuntimeEnsure()
-	ns.ForEachConfiguredUnit(function(unit)
-		if runtime.dirtyUnits[unit] then
-			ns.RefreshUnitModel(unit)
-		end
-	end)
+	if runtime.dirtyUnits[unit] then
+		return
+	end
+	runtime.dirtyUnits[unit] = true
+	runtime.dirtyUnitList[#runtime.dirtyUnitList + 1] = unit
 end

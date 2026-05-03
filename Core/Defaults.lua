@@ -1,14 +1,22 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
-local function default_unit_options()
+local function default_unit_options(attachedPosition)
 	return {
 		buff = true,
 		debuff = true,
 		mode = ns.DISPLAY_MODE.ATTACHED,
+		attachedPosition = attachedPosition or ns.ATTACHED_POSITION.BELOW,
 		layout = ns.LAYOUT.HORIZONTAL,
 		sortRule = ns.SORT_RULE.EXPIRATION,
 		filterMode = ns.FILTER_MODE.ALL,
+		iconSize = 28,
+		spacing = 3,
+		maxAuras = 12,
+		scale = 1,
+		showCountdown = true,
+		showSwipe = true,
+		showCounts = true,
 	}
 end
 
@@ -39,7 +47,6 @@ ns.DEFAULTS = {
 		showCountdown = true,
 		showSwipe = true,
 		showCounts = true,
-		showTitles = false,
 		scale = 1,
 	},
 	units = {
@@ -47,8 +54,8 @@ ns.DEFAULTS = {
 		target = default_unit_options(),
 		focus = default_unit_options(),
 		pet = default_unit_options(),
-		party = default_unit_options(),
-		partyPets = default_unit_options(),
+		party = default_unit_options(ns.ATTACHED_POSITION.RIGHT),
+		partyPets = default_unit_options(ns.ATTACHED_POSITION.RIGHT),
 		raid = default_unit_options(),
 		raidPets = default_unit_options(),
 		boss = default_unit_options(),

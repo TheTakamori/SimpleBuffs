@@ -13,7 +13,6 @@ ns.DB_KEY = {
 	SHOW_COUNTDOWN = "showCountdown",
 	SHOW_SWIPE = "showSwipe",
 	SHOW_COUNTS = "showCounts",
-	SHOW_TITLES = "showTitles",
 }
 
 ns.AURA_FILTER_SUFFIX = {
@@ -27,6 +26,7 @@ ns.AURA_SORT_DIRECTION = {
 }
 
 ns.LUA_TYPE = {
+	BOOLEAN = "boolean",
 	FUNCTION = "function",
 	NUMBER = "number",
 	STRING = "string",

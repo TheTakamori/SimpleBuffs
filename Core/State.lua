@@ -1,182 +1,42 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
-local function copy_table(source, target)
-	target = target or {}
-	for key, value in pairs(source or {}) do
-		if type(value) == ns.LUA_TYPE.TABLE then
-			target[key] = copy_table(value, type(target[key]) == ns.LUA_TYPE.TABLE and target[key] or {})
-		elseif target[key] == nil then
-			target[key] = value
-		end
-	end
-	return target
-end
-
-local function contains(values, needle)
-	for index = 1, #values do
-		if values[index] == needle then
-			return true
-		end
-	end
-	return false
-end
-
-local function clamp(value, minValue, maxValue, fallback)
-	local numeric = tonumber(value)
-	if numeric == nil then
-		numeric = fallback
-	end
-	if numeric < minValue then
-		return minValue
-	end
-	if numeric > maxValue then
-		return maxValue
-	end
-	return numeric
-end
-
-local function sanitize_position(saved, fallback)
-	saved.point = type(saved.point) == ns.LUA_TYPE.STRING and saved.point or fallback.point
-	saved.relativePoint = type(saved.relativePoint) == ns.LUA_TYPE.STRING and saved.relativePoint or fallback.relativePoint
-	saved.x = tonumber(saved.x) or fallback.x
-	saved.y = tonumber(saved.y) or fallback.y
-	return saved
-end
-
-local function migration_or_default(values, current, migration, default, rawValue)
-	if contains(values, rawValue) then
-		return current
-	end
-	if migration and contains(values, migration) then
-		return migration
-	end
-	if contains(values, current) then
-		return current
-	end
-	return default
-end
-
-local function sanitize_unit_options(groupKey, unitOptions, migrations)
-	local rawUnitOptions = migrations.rawUnits and migrations.rawUnits[groupKey] or {}
-	rawUnitOptions = type(rawUnitOptions) == ns.LUA_TYPE.TABLE and rawUnitOptions or {}
-	unitOptions.buff = unitOptions.buff ~= false
-	unitOptions.debuff = unitOptions.debuff ~= false
-	if not ns.UnitGroupSupportsAttached(groupKey) then
-		unitOptions.mode = ns.DISPLAY_MODE.STANDALONE
-	else
-		unitOptions.mode = migration_or_default(
-			ns.GetUnitGroupDisplayModes(groupKey),
-			unitOptions.mode,
-			migrations.mode,
-			ns.DEFAULTS.units[groupKey].mode,
-			rawUnitOptions.mode
-		)
-	end
-
-	unitOptions.layout = migration_or_default(ns.LAYOUT_ORDER, unitOptions.layout, migrations.layout, ns.DEFAULTS.units[groupKey].layout, rawUnitOptions.layout)
-	unitOptions.sortRule = migration_or_default(ns.SORT_RULE_ORDER, unitOptions.sortRule, migrations.sortRule, ns.DEFAULTS.units[groupKey].sortRule, rawUnitOptions.sortRule)
-	unitOptions.filterMode = migration_or_default(ns.FILTER_MODE_ORDER, unitOptions.filterMode, migrations.filterMode, ns.DEFAULTS.units[groupKey].filterMode, rawUnitOptions.filterMode)
-end
-
-local function sanitize_db(db, migrations)
-	migrations = migrations or {}
-	db.version = ns.DB_VERSION
-	db.appearance = type(db.appearance) == ns.LUA_TYPE.TABLE and db.appearance or {}
-	db.units = type(db.units) == ns.LUA_TYPE.TABLE and db.units or {}
-	db.attached = type(db.attached) == ns.LUA_TYPE.TABLE and db.attached or {}
-	db.standalone = type(db.standalone) == ns.LUA_TYPE.TABLE and db.standalone or {}
-	db.minimap = type(db.minimap) == ns.LUA_TYPE.TABLE and db.minimap or {}
-	db.minimap.angle = clamp(db.minimap.angle, ns.NUMBER.ZERO, ns.MINIMAP_MATH.FULL_CIRCLE_DEGREES, ns.DEFAULTS.minimap.angle)
-	db.minimap.hide = db.minimap.hide == true
-	db.displayMode = nil
-	db.locked = db.locked == true
-
-	local appearance = db.appearance
-	appearance.iconSize = clamp(appearance.iconSize, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, ns.DEFAULTS.appearance.iconSize)
-	appearance.spacing = clamp(appearance.spacing, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.appearance.spacing)
-	appearance.rowSpacing = clamp(appearance.rowSpacing, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.appearance.rowSpacing)
-	appearance.maxAuras = math.floor(clamp(appearance.maxAuras, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, ns.DEFAULTS.appearance.maxAuras))
-	appearance.scale = clamp(appearance.scale, ns.LIMITS.SCALE_MIN, ns.LIMITS.SCALE_MAX, ns.DEFAULTS.appearance.scale)
-	appearance.layout = nil
-	appearance.sortRule = nil
-	appearance.filterMode = nil
-	appearance.showCountdown = appearance.showCountdown ~= false
-	appearance.showSwipe = appearance.showSwipe ~= false
-	appearance.showCounts = appearance.showCounts ~= false
-	appearance.showTitles = appearance.showTitles ~= false
-
-	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
-		db.units[groupKey] = type(db.units[groupKey]) == ns.LUA_TYPE.TABLE and db.units[groupKey] or {}
-		sanitize_unit_options(groupKey, db.units[groupKey], migrations)
-	end
-
-	for unit, fallback in pairs(ns.ANCHOR_DEFAULTS) do
-		db.attached[unit] = type(db.attached[unit]) == ns.LUA_TYPE.TABLE and db.attached[unit] or {}
-		sanitize_position(db.attached[unit], fallback)
-	end
-
-	for containerKey, fallback in pairs(ns.STANDALONE_DEFAULTS) do
-		db.standalone[containerKey] = type(db.standalone[containerKey]) == ns.LUA_TYPE.TABLE and db.standalone[containerKey] or {}
-		sanitize_position(db.standalone[containerKey], fallback)
-	end
-end
-
-local function capture_raw_unit_options(units)
-	local snapshot = {}
-	if type(units) ~= ns.LUA_TYPE.TABLE then
-		return snapshot
-	end
-	for groupKey, options in pairs(units) do
-		if type(options) == ns.LUA_TYPE.TABLE then
-			snapshot[groupKey] = {
-				mode = options.mode,
-				layout = options.layout,
-				sortRule = options.sortRule,
-				filterMode = options.filterMode,
-			}
-		end
-	end
-	return snapshot
-end
-
-function ns.InitDB()
-	local existing = SimpleBuffsDB or {}
-	local previousVersion = tonumber(existing.version) or ns.NUMBER.ZERO
-	local existingAppearance = type(existing.appearance) == ns.LUA_TYPE.TABLE and existing.appearance or {}
-	local rawUnits = capture_raw_unit_options(existing.units)
-	local migrations = {
-		mode = previousVersion < ns.DB_VERSION and contains(ns.DISPLAY_MODE_ORDER, existing.displayMode) and existing.displayMode or nil,
-		layout = previousVersion < ns.DB_VERSION and contains(ns.LAYOUT_ORDER, existingAppearance.layout) and existingAppearance.layout or nil,
-		sortRule = previousVersion < ns.DB_VERSION and contains(ns.SORT_RULE_ORDER, existingAppearance.sortRule) and existingAppearance.sortRule or nil,
-		filterMode = previousVersion < ns.DB_VERSION and contains(ns.FILTER_MODE_ORDER, existingAppearance.filterMode) and existingAppearance.filterMode or nil,
-		rawUnits = rawUnits,
-	}
-	SimpleBuffsDB = copy_table(ns.DEFAULTS, existing)
-	sanitize_db(SimpleBuffsDB, migrations)
-	return SimpleBuffsDB
-end
-
-function ns.ResetDB()
-	SimpleBuffsDB = copy_table(ns.DEFAULTS, {})
-	sanitize_db(SimpleBuffsDB)
-	return SimpleBuffsDB
-end
+local appearanceCache = {}
 
 function ns.DB()
 	return SimpleBuffsDB or ns.InitDB()
 end
 
-function ns.Clamp(value, minValue, maxValue, fallback)
-	return clamp(value, minValue, maxValue, fallback)
-end
-
-function ns.IsKnownValue(values, value)
-	return contains(values, value)
-end
-
 function ns.GetAppearance()
 	return ns.DB().appearance
+end
+
+function ns.GetUnitGroupAppearance(groupKey)
+	groupKey = groupKey or ns.UNIT_GROUP.PLAYER
+	local options = ns.GetUnitGroupOptions(groupKey) or {}
+	local fallback = ns.DEFAULTS.units[groupKey] or ns.DEFAULTS.appearance
+	local appearance = appearanceCache[groupKey] or {}
+	appearanceCache[groupKey] = appearance
+	appearance.iconSize = options.iconSize or fallback.iconSize
+	appearance.spacing = options.spacing or fallback.spacing
+	appearance.rowSpacing = ns.GetAppearance().rowSpacing
+	appearance.maxAuras = options.maxAuras or fallback.maxAuras
+	appearance.scale = options.scale or fallback.scale
+	appearance.showCountdown = options.showCountdown ~= false
+	appearance.showSwipe = options.showSwipe ~= false
+	appearance.showCounts = options.showCounts ~= false
+	return appearance
+end
+
+function ns.GetUnitAppearance(unit)
+	return ns.GetUnitGroupAppearance(ns.GetUnitGroup(unit) or unit)
+end
+
+function ns.GetUnitMaxAuras(unit)
+	local groupKey = ns.GetUnitGroup(unit) or unit
+	local options = ns.GetUnitGroupOptions(groupKey) or {}
+	local fallback = ns.DEFAULTS.units[groupKey] or ns.DEFAULTS.appearance
+	return options.maxAuras or fallback.maxAuras
 end
 
 function ns.GetUnitOptions(unit)
@@ -203,10 +63,27 @@ function ns.GetUnitDisplayMode(unit)
 end
 
 function ns.SetUnitGroupDisplayMode(groupKey, mode)
-	if not ns.GetUnitGroupOptions(groupKey) or not contains(ns.GetUnitGroupDisplayModes(groupKey), mode) then
+	if not ns.GetUnitGroupOptions(groupKey) or not ns.IsKnownValue(ns.GetUnitGroupDisplayModes(groupKey), mode) then
 		return false
 	end
 	ns.DB().units[groupKey].mode = mode
+	return true
+end
+
+function ns.GetUnitGroupAttachedPosition(groupKey)
+	local options = ns.GetUnitGroupOptions(groupKey)
+	return options and options.attachedPosition or ns.DEFAULTS.units[groupKey].attachedPosition
+end
+
+function ns.GetUnitAttachedPosition(unit)
+	return ns.GetUnitGroupAttachedPosition(ns.GetUnitGroup(unit) or unit)
+end
+
+function ns.SetUnitGroupAttachedPosition(groupKey, attachedPosition)
+	if not ns.GetUnitGroupOptions(groupKey) or not ns.IsKnownValue(ns.ATTACHED_POSITION_ORDER, attachedPosition) then
+		return false
+	end
+	ns.DB().units[groupKey].attachedPosition = attachedPosition
 	return true
 end
 
@@ -220,7 +97,7 @@ function ns.GetUnitLayout(unit)
 end
 
 function ns.SetUnitGroupLayout(groupKey, layout)
-	if not ns.GetUnitGroupOptions(groupKey) or not contains(ns.LAYOUT_ORDER, layout) then
+	if not ns.GetUnitGroupOptions(groupKey) or not ns.IsKnownValue(ns.LAYOUT_ORDER, layout) then
 		return false
 	end
 	ns.DB().units[groupKey].layout = layout
@@ -237,7 +114,7 @@ function ns.GetUnitSortRule(unit)
 end
 
 function ns.SetUnitGroupSortRule(groupKey, sortRule)
-	if not ns.GetUnitGroupOptions(groupKey) or not contains(ns.SORT_RULE_ORDER, sortRule) then
+	if not ns.GetUnitGroupOptions(groupKey) or not ns.IsKnownValue(ns.SORT_RULE_ORDER, sortRule) then
 		return false
 	end
 	ns.DB().units[groupKey].sortRule = sortRule
@@ -254,7 +131,7 @@ function ns.GetUnitFilterMode(unit)
 end
 
 function ns.SetUnitGroupFilterMode(groupKey, filterMode)
-	if not ns.GetUnitGroupOptions(groupKey) or not contains(ns.FILTER_MODE_ORDER, filterMode) then
+	if not ns.GetUnitGroupOptions(groupKey) or not ns.IsKnownValue(ns.FILTER_MODE_ORDER, filterMode) then
 		return false
 	end
 	ns.DB().units[groupKey].filterMode = filterMode
@@ -271,30 +148,39 @@ function ns.AnyUnitGroupUsesStandaloneDisplay()
 	return false
 end
 
-function ns.SetAppearanceValue(key, value)
-	local appearance = ns.GetAppearance()
+local function apply_appearance_value(target, key, value, fallback, allowGlobalOnly)
 	if key == ns.DB_KEY.ICON_SIZE then
-		appearance.iconSize = math.floor(clamp(value, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, ns.DEFAULTS.appearance.iconSize))
+		target.iconSize = math.floor(ns.Clamp(value, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, fallback.iconSize))
 	elseif key == ns.DB_KEY.SPACING then
-		appearance.spacing = math.floor(clamp(value, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.appearance.spacing))
-	elseif key == ns.DB_KEY.ROW_SPACING then
-		appearance.rowSpacing = math.floor(clamp(value, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.appearance.rowSpacing))
+		target.spacing = math.floor(ns.Clamp(value, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, fallback.spacing))
+	elseif allowGlobalOnly and key == ns.DB_KEY.ROW_SPACING then
+		target.rowSpacing = math.floor(ns.Clamp(value, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, fallback.rowSpacing))
 	elseif key == ns.DB_KEY.MAX_AURAS then
-		appearance.maxAuras = math.floor(clamp(value, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, ns.DEFAULTS.appearance.maxAuras))
+		target.maxAuras = math.floor(ns.Clamp(value, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, fallback.maxAuras))
 	elseif key == ns.DB_KEY.SCALE then
-		appearance.scale = clamp(value, ns.LIMITS.SCALE_MIN, ns.LIMITS.SCALE_MAX, ns.DEFAULTS.appearance.scale)
+		target.scale = ns.Clamp(value, ns.LIMITS.SCALE_MIN, ns.LIMITS.SCALE_MAX, fallback.scale)
 	elseif key == ns.DB_KEY.SHOW_COUNTDOWN then
-		appearance.showCountdown = value == true
+		target.showCountdown = value == true
 	elseif key == ns.DB_KEY.SHOW_SWIPE then
-		appearance.showSwipe = value == true
+		target.showSwipe = value == true
 	elseif key == ns.DB_KEY.SHOW_COUNTS then
-		appearance.showCounts = value == true
-	elseif key == ns.DB_KEY.SHOW_TITLES then
-		appearance.showTitles = value == true
+		target.showCounts = value == true
 	else
 		return false
 	end
 	return true
+end
+
+function ns.SetAppearanceValue(key, value)
+	return apply_appearance_value(ns.GetAppearance(), key, value, ns.DEFAULTS.appearance, true)
+end
+
+function ns.SetUnitGroupAppearanceValue(groupKey, key, value)
+	local options = ns.GetUnitGroupOptions(groupKey)
+	if not options then
+		return false
+	end
+	return apply_appearance_value(options, key, value, ns.DEFAULTS.units[groupKey], false)
 end
 
 function ns.SetUnitGroupAuraEnabled(groupKey, auraType, enabled)

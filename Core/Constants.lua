@@ -2,8 +2,9 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.ADDON_NAME = "SimpleBuffs"
-ns.VERSION = "0.1.0"
-ns.DB_VERSION = 3
+ns.VERSION = "1.0.0"
+ns.DB_VERSION = 5
+ns.SELECT_COUNT = "#"
 
 ns.SLASH_COMMANDS = {
 	"/sbuff",
@@ -58,6 +59,27 @@ ns.DISPLAY_MODE_LABEL = {
 	attached = "Attached",
 	standalone = "Standalone",
 	both = "Both",
+}
+
+ns.ATTACHED_POSITION = {
+	ABOVE = "above",
+	BELOW = "below",
+	RIGHT = "right",
+	LEFT = "left",
+}
+
+ns.ATTACHED_POSITION_ORDER = {
+	ns.ATTACHED_POSITION.ABOVE,
+	ns.ATTACHED_POSITION.BELOW,
+	ns.ATTACHED_POSITION.RIGHT,
+	ns.ATTACHED_POSITION.LEFT,
+}
+
+ns.ATTACHED_POSITION_LABEL = {
+	above = "Above",
+	below = "Below",
+	right = "Right Hand",
+	left = "Left Hand",
 }
 
 ns.LAYOUT = {

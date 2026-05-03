@@ -55,7 +55,7 @@ return function(runner, ns)
 		assert.equal(rows[2].durationObject, "duration-12")
 		assert.equal(captured.unit, "focus")
 		assert.equal(captured.filter, "HELPFUL")
-		assert.equal(captured.maxCount, ns.DEFAULTS.appearance.maxAuras)
+		assert.equal(captured.maxCount, ns.DEFAULTS.units.focus.maxAuras)
 		assert.equal(captured.sortRule, ns.SORT_RULE.EXPIRATION)
 		assert.equal(captured.sortDirection, "Normal")
 	end)
@@ -83,6 +83,31 @@ return function(runner, ns)
 
 		assert.equal(capturedFilter, "HARMFUL|PLAYER")
 	end)
+
+	runner:test("ScanUnitAuraType uses per-group max aura count", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PARTY, ns.DB_KEY.MAX_AURAS, 7)
+
+		local capturedMaxCount
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function(_, _, maxCount)
+				capturedMaxCount = maxCount
+				return {}
+			end,
+			GetAuraDataByAuraInstanceID = function()
+				return nil
+			end,
+		})
+
+		ns.ScanUnitAuraType("party1", ns.AURA_TYPE.BUFF)
+
+		assert.equal(capturedMaxCount, 7)
+	end)
+
 
 	runner:test("ScanUnitAuraType maps every per-group filter mode", function()
 		_G.SimpleBuffsDB = nil

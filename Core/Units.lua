@@ -74,15 +74,6 @@ function ns.IsTrackedUnit(unit)
 	return ns.GetUnitGroup(unit) ~= nil
 end
 
-function ns.GetConfiguredUnits()
-	local units = {}
-	for index = 1, #ns.UNIT_ORDER do
-		units[#units + 1] = ns.UNIT_ORDER[index]
-	end
-
-	return units
-end
-
 function ns.ForEachConfiguredUnit(callback)
 	for index = 1, #ns.UNIT_ORDER do
 		callback(ns.UNIT_ORDER[index])

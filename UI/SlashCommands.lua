@@ -13,8 +13,8 @@ local function refresh()
 	if ns.RefreshAllDisplays then
 		ns.RefreshAllDisplays()
 	end
-	if ns.EnsureOptionsPanel then
-		ns.EnsureOptionsPanel()
+	if ns.RefreshOptionsPanel then
+		ns.RefreshOptionsPanel()
 	end
 end
 

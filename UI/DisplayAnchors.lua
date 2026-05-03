@@ -16,7 +16,17 @@ local PARTY_CONTAINER_ATTACHED_POSITION = {
 }
 local anchorCache = nil
 local anchorPositionCache = nil
+local anchorCacheDepth = 0
 local CACHE_MISS = false
+
+local function create_party_container_position(partyIndex)
+	return {
+		point = PARTY_CONTAINER_ATTACHED_POSITION.point,
+		relativePoint = PARTY_CONTAINER_ATTACHED_POSITION.relativePoint,
+		x = PARTY_CONTAINER_ATTACHED_POSITION.x,
+		y = PARTY_CONTAINER_ATTACHED_POSITION.y - ((tonumber(partyIndex) or ns.ATTACHED_LAYOUT.PARTY_INDEX_FALLBACK) - ns.LAYOUT_METRIC.INDEX_OFFSET) * ns.ATTACHED_LAYOUT.PARTY_ROW_SPACING,
+	}
+end
 
 local function get_frame_unit(frame)
 	if not frame then
@@ -108,7 +118,7 @@ local function get_party_anchor(unit, partyIndex)
 		if directAnchor and frame_is_visible(directAnchor) then
 			local frameUnit = get_frame_unit(directAnchor)
 			if not frameUnit or frameUnit == unit then
-				return directAnchor, nil
+				return directAnchor, PARTY_CONTAINER_ATTACHED_POSITION
 			end
 		end
 	end
@@ -117,18 +127,12 @@ local function get_party_anchor(unit, partyIndex)
 		or find_member_frame(compactRaidFrameContainer, unit)
 		or find_member_frame(partyFrame, unit)
 	if memberAnchor then
-		return memberAnchor, nil
+		return memberAnchor, PARTY_CONTAINER_ATTACHED_POSITION
 	end
 
 	local containerAnchor = compactPartyFrame or partyFrame
 	if containerAnchor and frame_is_visible(containerAnchor) then
-		local position = {
-			point = PARTY_CONTAINER_ATTACHED_POSITION.point,
-			relativePoint = PARTY_CONTAINER_ATTACHED_POSITION.relativePoint,
-			x = PARTY_CONTAINER_ATTACHED_POSITION.x,
-			y = PARTY_CONTAINER_ATTACHED_POSITION.y - ((tonumber(partyIndex) or ns.ATTACHED_LAYOUT.PARTY_INDEX_FALLBACK) - ns.LAYOUT_METRIC.INDEX_OFFSET) * ns.ATTACHED_LAYOUT.PARTY_ROW_SPACING,
-		}
-		return containerAnchor, position
+		return containerAnchor, create_party_container_position(partyIndex)
 	end
 
 	return nil, nil
@@ -144,12 +148,16 @@ local function get_party_pet_anchor(unit, partyIndex)
 		if directAnchor and frame_is_visible(directAnchor) then
 			local frameUnit = get_frame_unit(directAnchor)
 			if not frameUnit or frameUnit == unit then
-				return directAnchor, nil
+				return directAnchor, PARTY_CONTAINER_ATTACHED_POSITION
 			end
 		end
 	end
 
-	return find_member_frame(compactRaidFrameContainer, unit), nil
+	local memberAnchor = find_member_frame(compactRaidFrameContainer, unit)
+	if memberAnchor then
+		return memberAnchor, PARTY_CONTAINER_ATTACHED_POSITION
+	end
+	return nil, nil
 end
 
 local function get_compact_raid_anchor(unit)
@@ -227,6 +235,11 @@ local function resolve_attached_display_anchor(unit)
 end
 
 function ns.BeginAttachedAnchorCache()
+	if anchorCacheDepth > 0 then
+		anchorCacheDepth = anchorCacheDepth + 1
+		return
+	end
+	anchorCacheDepth = 1
 	anchorCache = anchorCache or {}
 	anchorPositionCache = anchorPositionCache or {}
 	for unit in pairs(anchorCache) do
@@ -236,14 +249,24 @@ function ns.BeginAttachedAnchorCache()
 end
 
 function ns.EndAttachedAnchorCache()
+	if anchorCacheDepth <= 0 then
+		return
+	end
+	anchorCacheDepth = anchorCacheDepth - 1
+	if anchorCacheDepth > 0 then
+		return
+	end
 	anchorCache = nil
 	anchorPositionCache = nil
 end
 
 function ns.GetAttachedDisplayAnchor(unit)
+	if not unit then
+		return nil
+	end
 	if anchorCache and anchorCache[unit] ~= nil then
 		local anchor = anchorCache[unit]
-		return anchor ~= CACHE_MISS and anchor or nil, anchorPositionCache[unit]
+		return anchor ~= CACHE_MISS and anchor or nil, anchorPositionCache and anchorPositionCache[unit] or nil
 	end
 
 	local anchor, position = resolve_attached_display_anchor(unit)

@@ -42,6 +42,7 @@ return function(runner, ns)
 	end)
 
 	runner:test("attached anchors resolve confirmed Blizzard frame paths", function()
+		local partyFrame = make_frame("party1")
 		local raidFrame = make_frame("raid14")
 		local raidPetFrame = make_frame("raidpet2")
 		local partyPetFrame = make_frame("partypet1")
@@ -60,10 +61,12 @@ return function(runner, ns)
 				return raidFrame, raidPetFrame, partyPetFrame
 			end,
 		}
+		_G.CompactPartyFrameMember1 = partyFrame
 		_G.Boss3TargetFrame = bossFrame
 		_G.ArenaEnemyMatchFrame4 = arenaFrame
 		_G.ArenaEnemyMatchFrame2PetFrame = arenaPetFrame
 
+		assert.equal(ns.GetAttachedDisplayAnchor("party1"), partyFrame)
 		assert.equal(ns.GetAttachedDisplayAnchor("raid14"), raidFrame)
 		assert.equal(ns.GetAttachedDisplayAnchor("raidpet2"), raidPetFrame)
 		assert.equal(ns.GetAttachedDisplayAnchor("partypet1"), partyPetFrame)
@@ -72,8 +75,69 @@ return function(runner, ns)
 		assert.equal(ns.GetAttachedDisplayAnchor("arenapet2"), arenaPetFrame)
 
 		_G.CompactRaidFrameContainer = nil
+		_G.CompactPartyFrameMember1 = nil
 		_G.Boss3TargetFrame = nil
 		_G.ArenaEnemyMatchFrame4 = nil
 		_G.ArenaEnemyMatchFrame2PetFrame = nil
+	end)
+
+	runner:test("party and party pet attached anchors use right-side positions", function()
+		local partyFrame = make_frame("party1")
+		local partyPetFrame = make_frame("partypet1")
+		_G.CompactPartyFrameMember1 = partyFrame
+		_G.CompactRaidFrameContainer = {
+			IsShown = function()
+				return true
+			end,
+			IsVisible = function()
+				return true
+			end,
+			GetChildren = function()
+				return partyPetFrame
+			end,
+		}
+
+		local _, partyPosition = ns.GetAttachedDisplayAnchor("party1")
+		local _, partyPetPosition = ns.GetAttachedDisplayAnchor("partypet1")
+
+		assert.equal(partyPosition.relativePoint, ns.UI.ANCHOR_TOPRIGHT)
+		assert.equal(partyPosition.x, ns.ATTACHED_LAYOUT.PARTY_CONTAINER_X)
+		assert.equal(partyPosition.y, ns.ATTACHED_LAYOUT.PARTY_CONTAINER_Y)
+		assert.equal(partyPetPosition.relativePoint, ns.UI.ANCHOR_TOPRIGHT)
+		assert.equal(partyPetPosition.x, ns.ATTACHED_LAYOUT.PARTY_CONTAINER_X)
+		assert.equal(partyPetPosition.y, ns.ATTACHED_LAYOUT.PARTY_CONTAINER_Y)
+
+		_G.CompactPartyFrameMember1 = nil
+		_G.CompactRaidFrameContainer = nil
+	end)
+
+	runner:test("party container fallback positions are cached independently", function()
+		local container = make_frame(nil)
+		_G.CompactPartyFrame = container
+
+		ns.BeginAttachedAnchorCache()
+		local _, partyOnePosition = ns.GetAttachedDisplayAnchor("party1")
+		local _, partyTwoPosition = ns.GetAttachedDisplayAnchor("party2")
+		ns.EndAttachedAnchorCache()
+
+		assert.equal(partyOnePosition == partyTwoPosition, false)
+		assert.equal(partyOnePosition.y, ns.ATTACHED_LAYOUT.PARTY_CONTAINER_Y)
+		assert.equal(partyTwoPosition.y, ns.ATTACHED_LAYOUT.PARTY_CONTAINER_Y - ns.ATTACHED_LAYOUT.PARTY_ROW_SPACING)
+
+		_G.CompactPartyFrame = nil
+	end)
+
+	runner:test("attached anchor cache tolerates nested begin and end", function()
+		local playerFrame = make_frame("player")
+		_G.PlayerFrame = playerFrame
+
+		ns.BeginAttachedAnchorCache()
+		ns.BeginAttachedAnchorCache()
+		assert.equal(ns.GetAttachedDisplayAnchor("player"), playerFrame)
+		ns.EndAttachedAnchorCache()
+		assert.equal(ns.GetAttachedDisplayAnchor("player"), playerFrame)
+		ns.EndAttachedAnchorCache()
+
+		_G.PlayerFrame = nil
 	end)
 end

@@ -1,6 +1,7 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 local EMPTY_ROWS = {}
+local filterCache = {}
 
 local function get_enum_value(enumTable, key)
 	if enumTable and key and enumTable[key] ~= nil then
@@ -12,14 +13,22 @@ end
 local function build_filter(unit, auraType)
 	local baseFilter = ns.AURA_FILTER[auraType]
 	local mode = ns.GetUnitFilterMode(unit)
-	if mode == ns.FILTER_MODE.PLAYER then
-		return baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.PLAYER
-	elseif mode == ns.FILTER_MODE.IMPORTANT then
-		return baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.IMPORTANT
-	elseif mode == ns.FILTER_MODE.CROWD_CONTROL then
-		return baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.CROWD_CONTROL
+	local groupKey = ns.GetUnitGroup(unit) or unit
+	filterCache[groupKey] = filterCache[groupKey] or {}
+	filterCache[groupKey][auraType] = filterCache[groupKey][auraType] or {}
+	if filterCache[groupKey][auraType][mode] then
+		return filterCache[groupKey][auraType][mode]
 	end
-	return baseFilter
+	local filter = baseFilter
+	if mode == ns.FILTER_MODE.PLAYER then
+		filter = baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.PLAYER
+	elseif mode == ns.FILTER_MODE.IMPORTANT then
+		filter = baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.IMPORTANT
+	elseif mode == ns.FILTER_MODE.CROWD_CONTROL then
+		filter = baseFilter .. "|" .. ns.AURA_FILTER_SUFFIX.CROWD_CONTROL
+	end
+	filterCache[groupKey][auraType][mode] = filter
+	return filter
 end
 
 local function get_sort_rule(unit)
@@ -62,7 +71,7 @@ local function scan_with_instance_ids(unit, auraType)
 		return nil
 	end
 
-	local maxCount = ns.GetAppearance().maxAuras
+	local maxCount = ns.GetUnitMaxAuras(unit)
 	local filter = build_filter(unit, auraType)
 	local instanceIDs = C_UnitAuras.GetUnitAuraInstanceIDs(unit, filter, maxCount, get_sort_rule(unit), get_sort_direction())
 	local results = {}
@@ -81,7 +90,7 @@ local function scan_with_unit_auras(unit, auraType)
 		return nil
 	end
 
-	local maxCount = ns.GetAppearance().maxAuras
+	local maxCount = ns.GetUnitMaxAuras(unit)
 	local filter = build_filter(unit, auraType)
 	local auras = C_UnitAuras.GetUnitAuras(unit, filter, maxCount, get_sort_rule(unit), get_sort_direction())
 	local results = {}
@@ -106,7 +115,7 @@ local function scan_with_index(unit, auraType)
 		return {}
 	end
 
-	local maxCount = ns.GetAppearance().maxAuras
+	local maxCount = ns.GetUnitMaxAuras(unit)
 	local filter = build_filter(unit, auraType)
 	local results = {}
 	for index = 1, maxCount do
@@ -137,10 +146,3 @@ function ns.ScanUnitAuras(unit)
 	return result
 end
 
-function ns.ScanAllAuras()
-	local result = {}
-	ns.ForEachConfiguredUnit(function(unit)
-		result[unit] = ns.ScanUnitAuras(unit)
-	end)
-	return result
-end
