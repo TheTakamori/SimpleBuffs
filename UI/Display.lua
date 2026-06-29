@@ -5,9 +5,11 @@ local MODE_ATTACHED = ns.DISPLAY_MODE.ATTACHED
 local MODE_STANDALONE = ns.DISPLAY_MODE.STANDALONE
 local DISPLAY_MODES = { MODE_ATTACHED, MODE_STANDALONE }
 
-local function get_display_name(unit, mode)
+local function get_display_name(unit, mode, auraType)
 	local label = (ns.UNIT_LABEL[unit] or unit):gsub(ns.PATTERN.NON_WORD, ns.TEXT.EMPTY)
-	return ns.FRAME_NAME.DISPLAY_PREFIX .. label .. mode:gsub(ns.PATTERN.FIRST_LOWERCASE, string.upper) .. ns.FRAME_NAME.DISPLAY_SUFFIX
+	local modeLabel = mode:gsub(ns.PATTERN.FIRST_LOWERCASE, string.upper)
+	local auraLabel = auraType and auraType:gsub(ns.PATTERN.FIRST_LOWERCASE, string.upper) or ns.TEXT.EMPTY
+	return ns.FRAME_NAME.DISPLAY_PREFIX .. label .. modeLabel .. auraLabel .. ns.FRAME_NAME.DISPLAY_SUFFIX
 end
 
 local function unit_exists(unit)
@@ -52,28 +54,51 @@ local function get_attached_position(unit, overridePosition)
 	return ns.UI.ANCHOR_TOPLEFT, ns.UI.ANCHOR_BOTTOMLEFT, x, y
 end
 
-local function place_frame(frame, unit, mode)
+local function place_attached_primary(frame, unit)
+	local anchor, overridePosition = ns.GetAttachedDisplayAnchor(unit)
+	if not anchor then
+		frame:Hide()
+		return false
+	end
+	local point, relativePoint, x, y = get_attached_position(unit, overridePosition)
+	frame:SetParent(anchor)
+	raise_attached_frame(frame, anchor)
+	frame:SetPoint(point, anchor, relativePoint, x, y)
+	return true
+end
+
+local function place_attached_below(frame, previousFrame)
+	if not previousFrame then
+		return false
+	end
+	local rowSpacing = ns.GetAppearance().rowSpacing
+	frame:SetParent(previousFrame:GetParent())
+	frame:ClearAllPoints()
+	frame:SetPoint(ns.UI.ANCHOR_TOPLEFT, previousFrame, ns.UI.ANCHOR_BOTTOMLEFT, ns.LAYOUT_METRIC.ORIGIN_X, -rowSpacing)
+	return true
+end
+
+local function place_frame(frame, unit, mode, auraType, previousAttachedFrame)
 	frame:ClearAllPoints()
 	if mode == MODE_ATTACHED then
-		local anchor, overridePosition = ns.GetAttachedDisplayAnchor(unit)
-		if not anchor then
-			frame:Hide()
-			return false
+		local previousSameUnit = previousAttachedFrame
+			and previousAttachedFrame.unit == unit
+			and previousAttachedFrame.mode == MODE_ATTACHED
+			and previousAttachedFrame:IsShown()
+		if previousSameUnit then
+			return place_attached_below(frame, previousAttachedFrame)
 		end
-		local point, relativePoint, x, y = get_attached_position(unit, overridePosition)
-		frame:SetParent(anchor)
-		raise_attached_frame(frame, anchor)
-		frame:SetPoint(point, anchor, relativePoint, x, y)
-		return true
+		return place_attached_primary(frame, unit)
 	end
 
 	return true
 end
 
-local function create_display(unit, mode)
-	local frame = CreateFrame(ns.UI.FRAME, get_display_name(unit, mode), UIParent)
+local function create_display(unit, mode, auraType)
+	local frame = CreateFrame(ns.UI.FRAME, get_display_name(unit, mode, auraType), UIParent)
 	frame.unit = unit
 	frame.mode = mode
+	frame.auraType = auraType
 	frame:SetSize(ns.DISPLAY_FRAME.WIDTH, ns.DISPLAY_FRAME.HEIGHT)
 	frame:SetFrameStrata(mode == MODE_STANDALONE and ns.UI.FRAME_STRATA_MEDIUM or ns.UI.FRAME_STRATA_LOW)
 
@@ -111,21 +136,27 @@ local function place_container(frame)
 	frame:SetPoint(saved.point, UIParent, saved.relativePoint, saved.x, saved.y)
 end
 
-local function ensure_display(unit, mode)
+local function ensure_display(unit, mode, auraType)
 	local runtime = ns.RuntimeEnsure()
 	runtime.frames[mode] = runtime.frames[mode] or {}
-	if not runtime.frames[mode][unit] then
-		runtime.frames[mode][unit] = create_display(unit, mode)
+	runtime.frames[mode][unit] = runtime.frames[mode][unit] or {}
+	if not runtime.frames[mode][unit][auraType] then
+		runtime.frames[mode][unit][auraType] = create_display(unit, mode, auraType)
 	end
-	return runtime.frames[mode][unit]
+	return runtime.frames[mode][unit][auraType]
 end
 
 local function hide_unit_displays(unit)
 	local runtime = ns.RuntimeEnsure()
 	for _, mode in ipairs(DISPLAY_MODES) do
-		local frame = runtime.frames[mode] and runtime.frames[mode][unit]
-		if frame then
-			frame:Hide()
+		local unitFrames = runtime.frames[mode] and runtime.frames[mode][unit]
+		if unitFrames then
+			for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+				local frame = unitFrames[auraType]
+				if frame then
+					frame:Hide()
+				end
+			end
 		end
 	end
 	runtime.models[unit] = nil
@@ -149,21 +180,40 @@ function ns.UpdateUnitDisplays(unit, forceRefresh)
 
 	for _, mode in ipairs(DISPLAY_MODES) do
 		local visibleMode = displayMode == mode or displayMode == ns.DISPLAY_MODE.BOTH
-		local existingFrame = runtime.frames[mode] and runtime.frames[mode][unit]
+		local unitFrames = runtime.frames[mode] and runtime.frames[mode][unit]
 		if not visibleMode then
-			if existingFrame then
-				existingFrame:Hide()
+			if unitFrames then
+				for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+					local frame = unitFrames[auraType]
+					if frame then
+						frame:Hide()
+					end
+				end
 			end
 		else
-			local frame = existingFrame or ensure_display(unit, mode)
-			if mode == MODE_STANDALONE then
-				frame:SetParent(get_or_create_container(get_container_key_for_unit(unit)))
-			end
-			if place_frame(frame, unit, mode) then
-				ns.UpdateAuraDisplayFrame(frame, model)
-				frame:Show()
-			else
-				frame:Hide()
+			local previousAttachedFrame = nil
+			for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+				if not ns.IsUnitAuraEnabled(unit, auraType) then
+					local framesForUnit = runtime.frames[mode] and runtime.frames[mode][unit]
+					local hiddenFrame = framesForUnit and framesForUnit[auraType]
+					if hiddenFrame then
+						hiddenFrame:Hide()
+					end
+				else
+					local frame = ensure_display(unit, mode, auraType)
+					if mode == MODE_STANDALONE then
+						frame:SetParent(get_or_create_container(get_container_key_for_unit(unit)))
+					end
+					if place_frame(frame, unit, mode, auraType, previousAttachedFrame) then
+						ns.UpdateAuraDisplayFrame(frame, model)
+						frame:Show()
+						if mode == MODE_ATTACHED then
+							previousAttachedFrame = frame
+						end
+					else
+						frame:Hide()
+					end
+				end
 			end
 		end
 	end
@@ -222,17 +272,25 @@ function ns.LayoutStandaloneContainers()
 		local totalHeight = ns.LAYOUT_METRIC.ORIGIN_Y
 		local visibleCount = ns.NUMBER.ZERO
 		ns.ForEachUnitInStandaloneContainer(containerKey, function(unit)
-			local frame = runtime.frames[MODE_STANDALONE] and runtime.frames[MODE_STANDALONE][unit]
-			if frame and frame:IsShown() then
-				frame:ClearAllPoints()
-				frame:SetPoint(ns.UI.ANCHOR_TOPLEFT, container, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
-				local width = frame:GetWidth() or ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
-				local height = frame:GetHeight() or ns.GetUnitGroupAppearance(ns.GetUnitGroup(unit) or unit).iconSize
-				if width > maxWidth then
-					maxWidth = width
+			local unitHadVisible = false
+			local unitFrames = runtime.frames[MODE_STANDALONE] and runtime.frames[MODE_STANDALONE][unit]
+			for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+				local frame = unitFrames and unitFrames[auraType]
+				if frame and frame:IsShown() then
+					frame:ClearAllPoints()
+					frame:SetPoint(ns.UI.ANCHOR_TOPLEFT, container, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
+					local width = frame:GetWidth() or ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
+					local height = frame:GetHeight()
+						or ns.GetUnitGroupAppearance(ns.GetUnitGroup(unit) or unit, auraType).iconSize
+					if width > maxWidth then
+						maxWidth = width
+					end
+					y = y - height - globalAppearance.rowSpacing
+					totalHeight = totalHeight + height + globalAppearance.rowSpacing
+					unitHadVisible = true
 				end
-				y = y - height - globalAppearance.rowSpacing
-				totalHeight = totalHeight + height + globalAppearance.rowSpacing
+			end
+			if unitHadVisible then
 				visibleCount = visibleCount + ns.NUMBER.ONE
 			end
 		end)

@@ -68,7 +68,7 @@ return function(runner, ns)
 		assert.equal(rows[2].durationObject, "duration-12")
 		assert.equal(captured.unit, "focus")
 		assert.equal(captured.filter, "HELPFUL")
-		assert.equal(captured.maxCount, ns.DEFAULTS.units.focus.maxAuras)
+		assert.equal(captured.maxCount, ns.DEFAULTS.units.focus.aura.buff.maxAuras)
 		assert.equal(captured.sortRule, ns.SORT_RULE.EXPIRATION)
 		assert.equal(captured.sortDirection, "Normal")
 	end)
@@ -76,7 +76,7 @@ return function(runner, ns)
 	runner:test("ScanUnitAuraType includes optional filter mode", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()
-		ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PET, ns.FILTER_MODE.PLAYER)
+		ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PET, ns.AURA_TYPE.DEBUFF, ns.FILTER_MODE.PLAYER)
 
 		local capturedFilter
 		rawset(_G, "UnitExists", function()
@@ -100,7 +100,7 @@ return function(runner, ns)
 	runner:test("ScanUnitAuraType uses per-group max aura count", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()
-		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PARTY, ns.DB_KEY.MAX_AURAS, 7)
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PARTY, ns.AURA_TYPE.BUFF, ns.DB_KEY.MAX_AURAS, 7)
 
 		local capturedMaxCount
 		rawset(_G, "UnitExists", function()
@@ -147,7 +147,7 @@ return function(runner, ns)
 			{ ns.FILTER_MODE.CROWD_CONTROL, "HELPFUL|CROWD_CONTROL" },
 		}
 		for index = 1, #cases do
-			ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PET, cases[index][1])
+			ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, cases[index][1])
 			ns.ScanUnitAuraType("pet", ns.AURA_TYPE.BUFF)
 			assert.equal(captured[index], cases[index][2])
 		end
@@ -172,7 +172,7 @@ return function(runner, ns)
 		})
 
 		for index = 1, #ns.SORT_RULE_ORDER do
-			ns.SetUnitGroupSortRule(ns.UNIT_GROUP.PARTY, ns.SORT_RULE_ORDER[index])
+			ns.SetUnitGroupSortRule(ns.UNIT_GROUP.PARTY, ns.AURA_TYPE.BUFF, ns.SORT_RULE_ORDER[index])
 			ns.ScanUnitAuraType("party1", ns.AURA_TYPE.BUFF)
 			assert.equal(captured[index], ns.SORT_RULE_ORDER[index])
 		end

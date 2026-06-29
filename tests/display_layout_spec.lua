@@ -117,18 +117,18 @@ return function(runner, ns)
 	runner:test("UpdateAuraDisplayFrame uses per-group appearance", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()
-		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.DB_KEY.ICON_SIZE, 32)
-		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.DB_KEY.SPACING, 6)
-		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.DB_KEY.SCALE, 1.5)
-		ns.SetUnitGroupLayout(ns.UNIT_GROUP.PET, ns.LAYOUT.HORIZONTAL)
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.DB_KEY.ICON_SIZE, 32)
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.DB_KEY.SPACING, 6)
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.DB_KEY.SCALE, 1.5)
+		ns.SetUnitGroupLayout(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.LAYOUT.HORIZONTAL)
 		created = 0
 
 		local frame = {
 			unit = "pet",
 			mode = ns.DISPLAY_MODE.ATTACHED,
+			auraType = ns.AURA_TYPE.BUFF,
 			rows = {
 				buff = make_row(),
-				debuff = make_row(),
 			},
 			SetScale = function(self, scale)
 				self.scale = scale
@@ -151,6 +151,6 @@ return function(runner, ns)
 		assert.equal(frame.rows.buff.width, 70)
 		assert.equal(frame.rows.buff.height, 32)
 		assert.equal(frame.width, 70)
-		assert.equal(frame.height, 37)
+		assert.equal(frame.height, 32)
 	end)
 end

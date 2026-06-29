@@ -11,7 +11,7 @@ end
 
 local function build_filter(unit, auraType)
 	local baseFilter = ns.AURA_FILTER[auraType]
-	local mode = ns.GetUnitFilterMode(unit)
+	local mode = ns.GetUnitFilterMode(unit, auraType)
 	local groupKey = ns.GetUnitGroup(unit) or unit
 	filterCache[groupKey] = filterCache[groupKey] or {}
 	filterCache[groupKey][auraType] = filterCache[groupKey][auraType] or {}
@@ -30,9 +30,9 @@ local function build_filter(unit, auraType)
 	return filter
 end
 
-local function get_sort_rule(unit)
+local function get_sort_rule(unit, auraType)
 	local enumTable = Enum and Enum.UnitAuraSortRule
-	return get_enum_value(enumTable, ns.GetUnitSortRule(unit))
+	return get_enum_value(enumTable, ns.GetUnitSortRule(unit, auraType))
 end
 
 local function get_sort_direction()
@@ -70,9 +70,9 @@ local function scan_with_instance_ids(unit, auraType)
 		return nil
 	end
 
-	local maxCount = ns.GetUnitMaxAuras(unit)
+	local maxCount = ns.GetUnitMaxAuras(unit, auraType)
 	local filter = build_filter(unit, auraType)
-	local instanceIDs = C_UnitAuras.GetUnitAuraInstanceIDs(unit, filter, maxCount, get_sort_rule(unit), get_sort_direction())
+	local instanceIDs = C_UnitAuras.GetUnitAuraInstanceIDs(unit, filter, maxCount, get_sort_rule(unit, auraType), get_sort_direction())
 	local results = {}
 	for index = 1, #(instanceIDs or {}) do
 		local auraInstanceID = instanceIDs[index]
@@ -89,9 +89,9 @@ local function scan_with_unit_auras(unit, auraType)
 		return nil
 	end
 
-	local maxCount = ns.GetUnitMaxAuras(unit)
+	local maxCount = ns.GetUnitMaxAuras(unit, auraType)
 	local filter = build_filter(unit, auraType)
-	local auras = C_UnitAuras.GetUnitAuras(unit, filter, maxCount, get_sort_rule(unit), get_sort_direction())
+	local auras = C_UnitAuras.GetUnitAuras(unit, filter, maxCount, get_sort_rule(unit, auraType), get_sort_direction())
 	local results = {}
 	for index = 1, #(auras or {}) do
 		local aura = auras[index]
@@ -114,7 +114,7 @@ local function scan_with_index(unit, auraType)
 		return {}
 	end
 
-	local maxCount = ns.GetUnitMaxAuras(unit)
+	local maxCount = ns.GetUnitMaxAuras(unit, auraType)
 	local filter = build_filter(unit, auraType)
 	local results = {}
 	for index = 1, maxCount do

@@ -5,25 +5,28 @@ configurable displays. It is built for World of Warcraft Retail
 `12.0.5 (Midnight)` and uses Blizzard cooldown widgets for countdown text so
 the UI can display aura timers without custom combat-state calculations.
 
-Current version: `1.1.2`.
+Current version: `1.2.1`.
 
 ## Features
 
 - Shows player, target, focus, pet, party, party pet, raid, raid pet, boss,
   arena, and arena pet buffs/debuffs by default.
 - Lets each unit group choose display mode, attached position, layout, sort,
-  filter, and style behavior from a dedicated unit tab.
+  filter, and style behavior from a dedicated unit tab, with separate Buffs and
+  Debuffs sub-tabs for per-type settings.
 - Includes hover explanations on option labels and controls.
 - Provides standalone grouped displays for users who prefer a custom placement.
   Unlocked standalone displays move with Shift-drag.
-- Provides per-unit-group icon size, spacing, max aura count, scale, countdown
-  text, cooldown swipe, stack counts, and quick enable/disable controls.
+- Provides per-aura-type icon size, spacing, max aura count, scale, countdown
+  text, cooldown swipe, and enable/disable controls within each unit tab's
+  Buffs and Debuffs sub-tabs.
 - Lets users copy settings from one unit tab to another with a Copy From
   dropdown.
 - Lets users lock or unlock standalone display movement from the options panel
   or minimap button.
 - Uses event-driven aura updates instead of constant polling.
-- Stores settings in `SimpleBuffsDB`.
+- Stores settings in `SimpleBuffsDB`. Existing settings migrate automatically
+  when upgrading from 1.1.3 or earlier.
 - Includes `package.py` to build a release zip without tests or local files.
 
 ## Slash Commands
@@ -46,6 +49,8 @@ Current version: `1.1.2`.
   party, party pet, raid, raid pet, boss, arena, and arena pet units when
   available.
 - Right-click the minimap button to lock or unlock standalone display dragging.
+- Aura icons pass mouse clicks through to frames underneath, so attached
+  displays do not block unit frame interaction.
 
 ## License
 

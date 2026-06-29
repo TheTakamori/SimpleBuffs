@@ -74,6 +74,75 @@ local function migrated_boolean(current, migration, rawValue)
 	return current ~= false
 end
 
+local LEGACY_UNIT_AURA_KEYS = {
+	"layout",
+	"sortRule",
+	"filterMode",
+	"iconSize",
+	"spacing",
+	"maxAuras",
+	"scale",
+	"showCountdown",
+	"showSwipe",
+	"showCounts",
+}
+
+local function absorb_legacy_flat_into_aura(unitOptions)
+	local hasFlat = false
+	for index = 1, #LEGACY_UNIT_AURA_KEYS do
+		if unitOptions[LEGACY_UNIT_AURA_KEYS[index]] ~= nil then
+			hasFlat = true
+			break
+		end
+	end
+	if not hasFlat then
+		return
+	end
+	if type(unitOptions.aura) ~= ns.LUA_TYPE.TABLE then
+		unitOptions.aura = {}
+	end
+	for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+		if type(unitOptions.aura[auraType]) ~= ns.LUA_TYPE.TABLE then
+			unitOptions.aura[auraType] = {}
+		end
+		local block = unitOptions.aura[auraType]
+		for flatIndex = 1, #LEGACY_UNIT_AURA_KEYS do
+			local key = LEGACY_UNIT_AURA_KEYS[flatIndex]
+			if unitOptions[key] ~= nil then
+				block[key] = unitOptions[key]
+			end
+		end
+	end
+	for flatIndex = 1, #LEGACY_UNIT_AURA_KEYS do
+		unitOptions[LEGACY_UNIT_AURA_KEYS[flatIndex]] = nil
+	end
+end
+
+local function sanitize_aura_options(groupKey, auraType, auraOpts, rawUnitOptions, migrations)
+	local defaultsAura = ns.DEFAULTS.units[groupKey].aura[auraType]
+	local rawAuraOpts = type(rawUnitOptions.aura) == ns.LUA_TYPE.TABLE and rawUnitOptions.aura[auraType] or {}
+	rawAuraOpts = type(rawAuraOpts) == ns.LUA_TYPE.TABLE and rawAuraOpts or {}
+
+	local function raw_first(key)
+		local fromAura = rawAuraOpts[key]
+		if fromAura ~= nil then
+			return fromAura
+		end
+		return rawUnitOptions[key]
+	end
+
+	auraOpts.layout = migration_or_default(ns.LAYOUT_ORDER, auraOpts.layout, migrations.layout, defaultsAura.layout, raw_first("layout"))
+	auraOpts.sortRule = migration_or_default(ns.SORT_RULE_ORDER, auraOpts.sortRule, migrations.sortRule, defaultsAura.sortRule, raw_first("sortRule"))
+	auraOpts.filterMode = migration_or_default(ns.FILTER_MODE_ORDER, auraOpts.filterMode, migrations.filterMode, defaultsAura.filterMode, raw_first("filterMode"))
+	auraOpts.iconSize = migrated_number(auraOpts.iconSize, migrations.iconSize, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, defaultsAura.iconSize, raw_first("iconSize"), true)
+	auraOpts.spacing = migrated_number(auraOpts.spacing, migrations.spacing, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, defaultsAura.spacing, raw_first("spacing"), true)
+	auraOpts.maxAuras = migrated_number(auraOpts.maxAuras, migrations.maxAuras, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, defaultsAura.maxAuras, raw_first("maxAuras"), true)
+	auraOpts.scale = migrated_number(auraOpts.scale, migrations.scale, ns.LIMITS.SCALE_MIN, ns.LIMITS.SCALE_MAX, defaultsAura.scale, raw_first("scale"), false)
+	auraOpts.showCountdown = migrated_boolean(auraOpts.showCountdown, migrations.showCountdown, raw_first("showCountdown"))
+	auraOpts.showSwipe = migrated_boolean(auraOpts.showSwipe, migrations.showSwipe, raw_first("showSwipe"))
+	auraOpts.showCounts = migrated_boolean(auraOpts.showCounts, migrations.showCounts, raw_first("showCounts"))
+end
+
 local function sanitize_unit_options(groupKey, unitOptions, migrations)
 	local rawUnitOptions = migrations.rawUnits and migrations.rawUnits[groupKey] or {}
 	rawUnitOptions = type(rawUnitOptions) == ns.LUA_TYPE.TABLE and rawUnitOptions or {}
@@ -91,17 +160,19 @@ local function sanitize_unit_options(groupKey, unitOptions, migrations)
 		)
 	end
 
-	unitOptions.layout = migration_or_default(ns.LAYOUT_ORDER, unitOptions.layout, migrations.layout, ns.DEFAULTS.units[groupKey].layout, rawUnitOptions.layout)
 	unitOptions.attachedPosition = migration_or_default(ns.ATTACHED_POSITION_ORDER, unitOptions.attachedPosition, nil, ns.DEFAULTS.units[groupKey].attachedPosition, rawUnitOptions.attachedPosition)
-	unitOptions.sortRule = migration_or_default(ns.SORT_RULE_ORDER, unitOptions.sortRule, migrations.sortRule, ns.DEFAULTS.units[groupKey].sortRule, rawUnitOptions.sortRule)
-	unitOptions.filterMode = migration_or_default(ns.FILTER_MODE_ORDER, unitOptions.filterMode, migrations.filterMode, ns.DEFAULTS.units[groupKey].filterMode, rawUnitOptions.filterMode)
-	unitOptions.iconSize = migrated_number(unitOptions.iconSize, migrations.iconSize, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, ns.DEFAULTS.units[groupKey].iconSize, rawUnitOptions.iconSize, true)
-	unitOptions.spacing = migrated_number(unitOptions.spacing, migrations.spacing, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.units[groupKey].spacing, rawUnitOptions.spacing, true)
-	unitOptions.maxAuras = migrated_number(unitOptions.maxAuras, migrations.maxAuras, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, ns.DEFAULTS.units[groupKey].maxAuras, rawUnitOptions.maxAuras, true)
-	unitOptions.scale = migrated_number(unitOptions.scale, migrations.scale, ns.LIMITS.SCALE_MIN, ns.LIMITS.SCALE_MAX, ns.DEFAULTS.units[groupKey].scale, rawUnitOptions.scale, false)
-	unitOptions.showCountdown = migrated_boolean(unitOptions.showCountdown, migrations.showCountdown, rawUnitOptions.showCountdown)
-	unitOptions.showSwipe = migrated_boolean(unitOptions.showSwipe, migrations.showSwipe, rawUnitOptions.showSwipe)
-	unitOptions.showCounts = migrated_boolean(unitOptions.showCounts, migrations.showCounts, rawUnitOptions.showCounts)
+
+	absorb_legacy_flat_into_aura(unitOptions)
+
+	if type(unitOptions.aura) ~= ns.LUA_TYPE.TABLE then
+		unitOptions.aura = {}
+	end
+	for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+		if type(unitOptions.aura[auraType]) ~= ns.LUA_TYPE.TABLE then
+			unitOptions.aura[auraType] = {}
+		end
+		sanitize_aura_options(groupKey, auraType, unitOptions.aura[auraType], rawUnitOptions, migrations)
+	end
 end
 
 local function sanitize_db(db, migrations)
@@ -154,6 +225,26 @@ local function capture_raw_unit_options(units)
 	end
 	for groupKey, options in pairs(units) do
 		if type(options) == ns.LUA_TYPE.TABLE then
+			local auraSnapshot = {}
+			if type(options.aura) == ns.LUA_TYPE.TABLE then
+				for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+					local block = options.aura[auraType]
+					if type(block) == ns.LUA_TYPE.TABLE then
+						auraSnapshot[auraType] = {
+							layout = block.layout,
+							sortRule = block.sortRule,
+							filterMode = block.filterMode,
+							iconSize = block.iconSize,
+							spacing = block.spacing,
+							maxAuras = block.maxAuras,
+							scale = block.scale,
+							showCountdown = block.showCountdown,
+							showSwipe = block.showSwipe,
+							showCounts = block.showCounts,
+						}
+					end
+				end
+			end
 			snapshot[groupKey] = {
 				mode = options.mode,
 				attachedPosition = options.attachedPosition,
@@ -167,6 +258,7 @@ local function capture_raw_unit_options(units)
 				showCountdown = options.showCountdown,
 				showSwipe = options.showSwipe,
 				showCounts = options.showCounts,
+				aura = auraSnapshot,
 			}
 		end
 	end

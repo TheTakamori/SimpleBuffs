@@ -11,12 +11,8 @@ local DEFAULT_STYLE = {
 	showCounts = true,
 }
 
-local function default_unit_options(attachedPosition)
+local function default_aura_options()
 	return {
-		buff = true,
-		debuff = true,
-		mode = ns.DISPLAY_MODE.ATTACHED,
-		attachedPosition = attachedPosition or ns.ATTACHED_POSITION.BELOW,
 		layout = ns.LAYOUT.HORIZONTAL,
 		sortRule = ns.SORT_RULE.EXPIRATION,
 		filterMode = ns.FILTER_MODE.ALL,
@@ -27,6 +23,19 @@ local function default_unit_options(attachedPosition)
 		showCountdown = DEFAULT_STYLE.showCountdown,
 		showSwipe = DEFAULT_STYLE.showSwipe,
 		showCounts = DEFAULT_STYLE.showCounts,
+	}
+end
+
+local function default_unit_options(attachedPosition)
+	return {
+		buff = true,
+		debuff = true,
+		mode = ns.DISPLAY_MODE.ATTACHED,
+		attachedPosition = attachedPosition or ns.ATTACHED_POSITION.BELOW,
+		aura = {
+			buff = default_aura_options(),
+			debuff = default_aura_options(),
+		},
 	}
 end
 

@@ -86,7 +86,7 @@ local function create_copy_from_row(tab, groupKey, panelState, y)
 	register_tab_child(tab, copyButton)
 end
 
-local function create_dropdown_row(tab, groupKey, column, y)
+local function create_dropdown_row(tab, groupKey, column, y, resolveAuraType)
 	local rowY = column.sameRowAsPrevious and y + ns.OPTIONS_LAYOUT.TAB_ROW_GAP_Y or y
 	if not column.hideLabel then
 		local label = ns.CreateOptionsRowLabel(tab, column.header, ns.NUMBER.ZERO, rowY)
@@ -113,10 +113,17 @@ local function create_dropdown_row(tab, groupKey, column, y)
 		ns.OPTIONS_LAYOUT.TAB_DROPDOWN_WIDTH,
 		values,
 		function()
+			if column.perAura then
+				return column.get(groupKey, resolveAuraType())
+			end
 			return column.get(groupKey)
 		end,
 		function(value)
-			column.set(groupKey, value)
+			if column.perAura then
+				column.set(groupKey, resolveAuraType(), value)
+			else
+				column.set(groupKey, value)
+			end
 		end,
 		column.labels,
 		column.tooltip,
@@ -134,7 +141,7 @@ local function create_dropdown_row(tab, groupKey, column, y)
 	register_tab_child(tab, dropdown)
 end
 
-local function create_style_slider(tab, groupKey, slider, y)
+local function create_style_slider(tab, groupKey, slider, y, resolveAuraType)
 	return ns.CreateOptionsSlider(
 		tab,
 		slider.text,
@@ -144,16 +151,16 @@ local function create_style_slider(tab, groupKey, slider, y)
 		slider.step,
 		function()
 			if slider.get then
-				return slider.get(groupKey)
+				return slider.get(groupKey, resolveAuraType())
 			end
-			return ns.GetUnitGroupAppearance(groupKey)[slider.key]
+			return ns.GetUnitGroupAppearance(groupKey, resolveAuraType())[slider.key]
 		end,
 		function(value)
 			if slider.set then
-				slider.set(groupKey, value)
+				slider.set(groupKey, resolveAuraType(), value)
 				return
 			end
-			ns.SetUnitGroupAppearanceValue(groupKey, slider.key, value)
+			ns.SetUnitGroupAppearanceValue(groupKey, resolveAuraType(), slider.key, value)
 		end,
 		slider.format,
 		ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X,
@@ -168,27 +175,39 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 	tab:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, ns.OPTIONS_LAYOUT.TAB_CONTENT_X, ns.OPTIONS_LAYOUT.TAB_CONTENT_Y)
 	tab:SetSize(ns.OPTIONS_LAYOUT.TAB_CONTENT_WIDTH, ns.OPTIONS_LAYOUT.TAB_CONTENT_HEIGHT)
 
+	panelState.selectedAuraTabByGroup = panelState.selectedAuraTabByGroup or {}
+
+	local function resolveAuraType()
+		local selected = panelState.selectedAuraTabByGroup[groupKey]
+		if not ns.IsKnownValue(ns.AURA_TYPE_ORDER, selected) then
+			selected = ns.AURA_TYPE.BUFF
+			panelState.selectedAuraTabByGroup[groupKey] = selected
+		end
+		return selected
+	end
+
 	local y = ns.NUMBER.ZERO
 	ns.CreateOptionsLabelAt(tab, ns.UNIT_GROUP_LABEL[groupKey] or groupKey, ns.NUMBER.ZERO, y, true)
 	register_tab_child(tab, create_unit_reset_button(tab, groupKey, panelState, y))
-	y = y - ns.OPTIONS_LAYOUT.TAB_TITLE_CHECK_GAP_Y
+	y = y - ns.OPTIONS_LAYOUT.TAB_TITLE_AURA_GAP_Y
 
-	register_tab_child(tab, ns.CreateOptionsCheck(tab, ns.AURA_LABEL[ns.AURA_TYPE.BUFF], y, function()
-		return ns.GetUnitGroupOptions(groupKey).buff
+	local auraTabButtons = ns.CreateAuraTypeTabButtons(tab, groupKey, panelState, y)
+	for index = 1, #auraTabButtons do
+		register_tab_child(tab, auraTabButtons[index])
+	end
+	y = y - ns.OPTIONS_LAYOUT.TAB_AURA_BUTTON_HEIGHT - ns.OPTIONS_LAYOUT.TAB_AURA_TO_CHECK_GAP_Y
+
+	register_tab_child(tab, ns.CreateOptionsCheck(tab, ns.TEXT.OPTIONS_AURA_FRAME_ENABLED, y, function()
+		return ns.GetUnitGroupOptions(groupKey)[resolveAuraType()] == true
 	end, function(value)
-		ns.SetUnitGroupAuraEnabled(groupKey, ns.AURA_TYPE.BUFF, value)
-	end, ns.NUMBER.ZERO))
-	register_tab_child(tab, ns.CreateOptionsCheck(tab, ns.AURA_LABEL[ns.AURA_TYPE.DEBUFF], y, function()
-		return ns.GetUnitGroupOptions(groupKey).debuff
-	end, function(value)
-		ns.SetUnitGroupAuraEnabled(groupKey, ns.AURA_TYPE.DEBUFF, value)
-	end, ns.OPTIONS_LAYOUT.TAB_SECOND_CHECK_X))
+		ns.SetUnitGroupAuraEnabled(groupKey, resolveAuraType(), value)
+	end, ns.NUMBER.ZERO, nil, ns.TEXT.OPTIONS_TOOLTIP_AURA_FRAME_ENABLED))
 	register_tab_child(tab, create_standalone_move_hint(tab, groupKey, ns.OPTIONS_LAYOUT.TAB_CHECK_HINT_X, y))
 	y = y - ns.OPTIONS_LAYOUT.TAB_CHECK_DROPDOWN_GAP_Y
 
 	for index = 1, #ns.OPTIONS_UNIT_DROPDOWN_COLUMNS do
 		local column = ns.OPTIONS_UNIT_DROPDOWN_COLUMNS[index]
-		create_dropdown_row(tab, groupKey, column, y)
+		create_dropdown_row(tab, groupKey, column, y, resolveAuraType)
 		if not column.sameRowAsPrevious then
 			y = y - ns.OPTIONS_LAYOUT.TAB_ROW_GAP_Y
 		end
@@ -197,21 +216,22 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 	y = y - ns.OPTIONS_LAYOUT.TAB_DROPDOWN_SLIDER_GAP_Y
 
 	for index = 1, #ns.OPTIONS_STYLE_SLIDERS do
-		register_tab_child(tab, create_style_slider(tab, groupKey, ns.OPTIONS_STYLE_SLIDERS[index], y))
+		register_tab_child(tab, create_style_slider(tab, groupKey, ns.OPTIONS_STYLE_SLIDERS[index], y, resolveAuraType))
 		y = y - ns.OPTIONS_LAYOUT.TAB_ROW_GAP_Y
 	end
 
 	for index = 1, #ns.OPTIONS_STYLE_CHECKS do
 		local check = ns.OPTIONS_STYLE_CHECKS[index]
 		register_tab_child(tab, ns.CreateOptionsCheck(tab, check.text, y, function()
-			return ns.GetUnitGroupAppearance(groupKey)[check.key]
+			return ns.GetUnitGroupAppearance(groupKey, resolveAuraType())[check.key]
 		end, function(value)
-			ns.SetUnitGroupAppearanceValue(groupKey, check.key, value)
+			ns.SetUnitGroupAppearanceValue(groupKey, resolveAuraType(), check.key, value)
 		end, ns.NUMBER.ZERO, check.refresh))
 		y = y - ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y
 	end
 
-	create_copy_from_row(tab, groupKey, panelState, ns.OPTIONS_LAYOUT.TAB_COPY_ROW_Y)
+	y = y - ns.OPTIONS_LAYOUT.TAB_COPY_FROM_GAP_Y
+	create_copy_from_row(tab, groupKey, panelState, y)
 
 	tab.RefreshFromDB = function(self)
 		self:SetShown(panelState.selectedGroup == groupKey)

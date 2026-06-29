@@ -130,6 +130,24 @@ local function on_drag_stop(self)
 	end
 end
 
+local function apply_clickthrough(button)
+	if button.SetMouseClickEnabled then
+		button:SetMouseClickEnabled(false)
+	end
+
+	local cooldown = button.cooldown
+	if not cooldown then
+		return
+	end
+
+	if cooldown.SetMouseClickEnabled then
+		cooldown:SetMouseClickEnabled(false)
+	end
+	if cooldown.EnableMouse then
+		cooldown:EnableMouse(false)
+	end
+end
+
 local function apply_icon(button, aura)
 	button.icon:SetTexture(ns.AURA_BUTTON.QUESTION_MARK_ICON)
 	if not aura then
@@ -167,6 +185,7 @@ function ns.CreateAuraButton(parent)
 	button:SetScript(ns.UI.ON_LEAVE, on_leave)
 	button:SetScript(ns.UI.ON_DRAG_START, on_drag_start)
 	button:SetScript(ns.UI.ON_DRAG_STOP, on_drag_stop)
+	apply_clickthrough(button)
 
 	return button
 end

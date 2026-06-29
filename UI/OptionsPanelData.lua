@@ -55,12 +55,13 @@ ns.OPTIONS_UNIT_DROPDOWN_COLUMNS = {
 	},
 	{
 		header = ns.TEXT.OPTIONS_LAYOUT,
+		perAura = true,
 		values = ns.LAYOUT_ORDER,
-		get = function(groupKey)
-			return ns.GetUnitGroupLayout(groupKey)
+		get = function(groupKey, auraType)
+			return ns.GetUnitGroupLayout(groupKey, auraType)
 		end,
-		set = function(groupKey, value)
-			ns.SetUnitGroupLayout(groupKey, value)
+		set = function(groupKey, auraType, value)
+			ns.SetUnitGroupLayout(groupKey, auraType, value)
 		end,
 		labels = ns.LAYOUT_LABEL,
 		tooltip = ns.TEXT.OPTIONS_TOOLTIP_LAYOUT,
@@ -68,24 +69,26 @@ ns.OPTIONS_UNIT_DROPDOWN_COLUMNS = {
 	},
 	{
 		header = ns.TEXT.OPTIONS_SORT,
+		perAura = true,
 		values = ns.SORT_RULE_ORDER,
-		get = function(groupKey)
-			return ns.GetUnitGroupSortRule(groupKey)
+		get = function(groupKey, auraType)
+			return ns.GetUnitGroupSortRule(groupKey, auraType)
 		end,
-		set = function(groupKey, value)
-			ns.SetUnitGroupSortRule(groupKey, value)
+		set = function(groupKey, auraType, value)
+			ns.SetUnitGroupSortRule(groupKey, auraType, value)
 		end,
 		labels = ns.SORT_RULE_LABEL,
 		tooltip = ns.TEXT.OPTIONS_TOOLTIP_SORT,
 	},
 	{
 		header = ns.TEXT.OPTIONS_FILTER,
+		perAura = true,
 		values = ns.FILTER_MODE_ORDER,
-		get = function(groupKey)
-			return ns.GetUnitGroupFilterMode(groupKey)
+		get = function(groupKey, auraType)
+			return ns.GetUnitGroupFilterMode(groupKey, auraType)
 		end,
-		set = function(groupKey, value)
-			ns.SetUnitGroupFilterMode(groupKey, value)
+		set = function(groupKey, auraType, value)
+			ns.SetUnitGroupFilterMode(groupKey, auraType, value)
 		end,
 		labels = ns.FILTER_MODE_LABEL,
 		tooltip = ns.TEXT.OPTIONS_TOOLTIP_FILTER,
@@ -96,6 +99,7 @@ ns.OPTIONS_STYLE_SLIDERS = {
 	{
 		text = ns.TEXT.OPTIONS_ICON_SIZE,
 		key = ns.DB_KEY.ICON_SIZE,
+		perAura = true,
 		min = ns.LIMITS.ICON_SIZE_MIN,
 		max = ns.LIMITS.ICON_SIZE_MAX,
 		step = ns.OPTIONS_LAYOUT.SLIDER_STEP,
@@ -105,6 +109,7 @@ ns.OPTIONS_STYLE_SLIDERS = {
 	{
 		text = ns.TEXT.OPTIONS_SPACING,
 		key = ns.DB_KEY.SPACING,
+		perAura = true,
 		min = ns.LIMITS.SPACING_MIN,
 		max = ns.LIMITS.SPACING_MAX,
 		step = ns.OPTIONS_LAYOUT.SLIDER_STEP,
@@ -114,6 +119,7 @@ ns.OPTIONS_STYLE_SLIDERS = {
 	{
 		text = ns.TEXT.OPTIONS_MAX_AURAS,
 		key = ns.DB_KEY.MAX_AURAS,
+		perAura = true,
 		min = ns.LIMITS.MAX_AURAS_MIN,
 		max = ns.LIMITS.MAX_AURAS_MAX,
 		step = ns.OPTIONS_LAYOUT.SLIDER_STEP,
@@ -123,16 +129,17 @@ ns.OPTIONS_STYLE_SLIDERS = {
 	{
 		text = ns.TEXT.OPTIONS_SCALE,
 		key = ns.DB_KEY.SCALE,
+		perAura = true,
 		min = ns.LIMITS.SCALE_MIN * ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER,
 		max = ns.LIMITS.SCALE_MAX * ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER,
 		step = ns.OPTIONS_LAYOUT.SCALE_STEP_PERCENT,
 		tooltip = ns.TEXT.OPTIONS_TOOLTIP_SCALE,
 		refresh = ns.RepaintOptionsDisplays,
-		get = function(groupKey)
-			return ns.GetUnitGroupAppearance(groupKey).scale * ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER
+		get = function(groupKey, auraType)
+			return ns.GetUnitGroupAppearance(groupKey, auraType).scale * ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER
 		end,
-		set = function(groupKey, value)
-			ns.SetUnitGroupAppearanceValue(groupKey, ns.DB_KEY.SCALE, value / ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER)
+		set = function(groupKey, auraType, value)
+			ns.SetUnitGroupAppearanceValue(groupKey, auraType, ns.DB_KEY.SCALE, value / ns.OPTIONS_LAYOUT.PERCENT_MULTIPLIER)
 		end,
 		format = function(value)
 			return tostring(math.floor(value)) .. ns.TEXT.PERCENT
@@ -144,16 +151,19 @@ ns.OPTIONS_STYLE_CHECKS = {
 	{
 		text = ns.TEXT.OPTIONS_SHOW_COUNTDOWN,
 		key = ns.DB_KEY.SHOW_COUNTDOWN,
+		perAura = true,
 		refresh = ns.RepaintOptionsDisplays,
 	},
 	{
 		text = ns.TEXT.OPTIONS_SHOW_SWIPE,
 		key = ns.DB_KEY.SHOW_SWIPE,
+		perAura = true,
 		refresh = ns.RepaintOptionsDisplays,
 	},
 	{
 		text = ns.TEXT.OPTIONS_SHOW_COUNTS,
 		key = ns.DB_KEY.SHOW_COUNTS,
+		perAura = true,
 		refresh = ns.RepaintOptionsDisplays,
 	},
 }

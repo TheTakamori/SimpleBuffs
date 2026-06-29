@@ -93,28 +93,24 @@ function ns.UpdateAuraDisplayRow(row, model, appearance, layout)
 end
 
 function ns.UpdateAuraDisplayFrame(frame, model)
-	local appearance = ns.GetUnitAppearance(frame.unit)
-	local layout = ns.GetUnitLayout(frame.unit)
-	local y = ns.LAYOUT_METRIC.ORIGIN_Y
-	local maxWidth = ns.LAYOUT_METRIC.MIN_SIZE
+	local auraType = frame.auraType
+	if not auraType then
+		return
+	end
+
+	local appearance = ns.GetUnitAppearance(frame.unit, auraType)
+	local layout = ns.GetUnitLayout(frame.unit, auraType)
+	local row = get_or_create_row(frame, auraType)
+	local width, height = ns.UpdateAuraDisplayRow(row, model and model[auraType], appearance, layout)
+	row:ClearAllPoints()
+	row:SetPoint(ns.UI.ANCHOR_TOPLEFT, frame, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, ns.LAYOUT_METRIC.ORIGIN_Y)
 	local totalHeight = ns.LAYOUT_METRIC.ORIGIN_Y
+	if row:IsShown() then
+		totalHeight = totalHeight + height
+	end
 
 	frame:SetScale(appearance.scale)
 	frame:EnableMouse(frame.mode == ns.DISPLAY_MODE.STANDALONE and not ns.DB().locked)
 
-	for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
-		local row = get_or_create_row(frame, auraType)
-		local width, height = ns.UpdateAuraDisplayRow(row, model and model[auraType], appearance, layout)
-		row:ClearAllPoints()
-		row:SetPoint(ns.UI.ANCHOR_TOPLEFT, frame, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
-		if row:IsShown() then
-			y = y - height - appearance.rowSpacing
-			totalHeight = totalHeight + height + appearance.rowSpacing
-			if width > maxWidth then
-				maxWidth = width
-			end
-		end
-	end
-
-	frame:SetSize(math.max(maxWidth, ns.DISPLAY_FRAME.MIN_WIDTH), math.max(totalHeight, appearance.iconSize))
+	frame:SetSize(math.max(width, ns.DISPLAY_FRAME.MIN_WIDTH), math.max(totalHeight, appearance.iconSize))
 end
