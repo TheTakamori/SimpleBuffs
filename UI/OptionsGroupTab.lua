@@ -88,16 +88,18 @@ end
 
 local function create_dropdown_row(tab, groupKey, column, y, resolveAuraType)
 	local rowY = column.sameRowAsPrevious and y + ns.OPTIONS_LAYOUT.TAB_ROW_GAP_Y or y
+	local controlX = column.x or ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X
+	local labelX = controlX - ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X
 	if not column.hideLabel then
-		local label = ns.CreateOptionsRowLabel(tab, column.header, ns.NUMBER.ZERO, rowY)
-		local labelHover = ns.CreateOptionsTooltipRegion(tab, ns.NUMBER.ZERO, rowY, ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X, ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_HEIGHT, column.tooltip)
+		local label = ns.CreateOptionsRowLabel(tab, column.header, labelX, rowY)
+		local labelHover = ns.CreateOptionsTooltipRegion(tab, labelX, rowY, ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X, ns.OPTIONS_LAYOUT.OPTIONS_BUTTON_HEIGHT, column.tooltip)
 		if column.showWhen then
 			label.RefreshFromDB = function(self)
-				self:SetShown(column.showWhen(groupKey))
+				self:SetShown(column.showWhen(groupKey, resolveAuraType()))
 			end
 			if labelHover then
 				labelHover.RefreshFromDB = function(self)
-					self:SetShown(column.showWhen(groupKey))
+					self:SetShown(column.showWhen(groupKey, resolveAuraType()))
 				end
 			end
 		end
@@ -108,7 +110,7 @@ local function create_dropdown_row(tab, groupKey, column, y, resolveAuraType)
 	local values = type(column.values) == ns.LUA_TYPE.FUNCTION and column.values(groupKey) or column.values
 	local dropdown = ns.CreateOptionsDropdownOnRow(
 		tab,
-		column.x or ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X,
+		controlX,
 		rowY,
 		ns.OPTIONS_LAYOUT.TAB_DROPDOWN_WIDTH,
 		values,
@@ -135,14 +137,14 @@ local function create_dropdown_row(tab, groupKey, column, y, resolveAuraType)
 			if refreshDropdown then
 				refreshDropdown(self)
 			end
-			self:SetShown(column.showWhen(groupKey))
+			self:SetShown(column.showWhen(groupKey, resolveAuraType()))
 		end
 	end
 	register_tab_child(tab, dropdown)
 end
 
 local function create_style_slider(tab, groupKey, slider, y, resolveAuraType)
-	return ns.CreateOptionsSlider(
+	local widget = ns.CreateOptionsSlider(
 		tab,
 		slider.text,
 		y,
@@ -167,6 +169,39 @@ local function create_style_slider(tab, groupKey, slider, y, resolveAuraType)
 		slider.tooltip,
 		slider.refresh
 	)
+	if slider.showWhen then
+		local refreshSlider = widget.RefreshFromDB
+		widget.RefreshFromDB = function(self)
+			if refreshSlider then
+				refreshSlider(self)
+			end
+			local shown = slider.showWhen(groupKey, resolveAuraType())
+			self:SetShown(shown)
+			if self.ValueText then
+				self.ValueText:SetShown(shown)
+			end
+		end
+	end
+	return widget
+end
+
+local function create_check_row(tab, groupKey, check, y, resolveAuraType)
+	local rowY = check.sameRowAsPrevious and y + ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y or y
+	local widget = ns.CreateOptionsCheck(tab, check.text, rowY, function()
+		return ns.GetUnitGroupAppearance(groupKey, resolveAuraType())[check.key]
+	end, function(value)
+		ns.SetUnitGroupAppearanceValue(groupKey, resolveAuraType(), check.key, value)
+	end, check.x or ns.NUMBER.ZERO, check.refresh)
+	if check.showWhen then
+		local refreshCheck = widget.RefreshFromDB
+		widget.RefreshFromDB = function(self)
+			if refreshCheck then
+				refreshCheck(self)
+			end
+			self:SetShown(check.showWhen(groupKey, resolveAuraType()))
+		end
+	end
+	register_tab_child(tab, widget)
 end
 
 function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
@@ -222,12 +257,10 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 
 	for index = 1, #ns.OPTIONS_STYLE_CHECKS do
 		local check = ns.OPTIONS_STYLE_CHECKS[index]
-		register_tab_child(tab, ns.CreateOptionsCheck(tab, check.text, y, function()
-			return ns.GetUnitGroupAppearance(groupKey, resolveAuraType())[check.key]
-		end, function(value)
-			ns.SetUnitGroupAppearanceValue(groupKey, resolveAuraType(), check.key, value)
-		end, ns.NUMBER.ZERO, check.refresh))
-		y = y - ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y
+		create_check_row(tab, groupKey, check, y, resolveAuraType)
+		if not check.sameRowAsPrevious then
+			y = y - ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y
+		end
 	end
 
 	y = y - ns.OPTIONS_LAYOUT.TAB_COPY_FROM_GAP_Y

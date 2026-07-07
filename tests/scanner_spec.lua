@@ -178,6 +178,40 @@ return function(runner, ns)
 		end
 	end)
 
+	runner:test("ScanUnitAuraType picks native rule from Bar Sort when style is bar", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		ns.SetUnitGroupStyle(ns.UNIT_GROUP.PARTY, ns.AURA_TYPE.BUFF, ns.AURA_STYLE.BAR)
+
+		local captured = {}
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function(_, _, _, sortRule)
+				captured[#captured + 1] = sortRule
+				return {}
+			end,
+			GetAuraDataByAuraInstanceID = function()
+				return nil
+			end,
+		})
+
+		local cases = {
+			{ ns.BAR_SORT.ALPHA_ASC, ns.SORT_RULE.NAME_ONLY },
+			{ ns.BAR_SORT.ALPHA_DESC, ns.SORT_RULE.NAME_ONLY },
+			{ ns.BAR_SORT.TIME_LEFT_ASC, ns.SORT_RULE.EXPIRATION },
+			{ ns.BAR_SORT.TIME_LEFT_DESC, ns.SORT_RULE.EXPIRATION },
+			{ ns.BAR_SORT.MAX_DURATION_ASC, ns.SORT_RULE.DEFAULT },
+			{ ns.BAR_SORT.MAX_DURATION_DESC, ns.SORT_RULE.DEFAULT },
+		}
+		for index = 1, #cases do
+			ns.SetUnitGroupBarSort(ns.UNIT_GROUP.PARTY, ns.AURA_TYPE.BUFF, cases[index][1])
+			ns.ScanUnitAuraType("party1", ns.AURA_TYPE.BUFF)
+			assert.equal(captured[index], cases[index][2])
+		end
+	end)
+
 	runner:test("ScanUnitAuraType returns empty rows for missing units", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()

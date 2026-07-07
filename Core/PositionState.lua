@@ -14,12 +14,6 @@ function ns.GetAttachedPosition(unit)
 	return ns.DB().attached[unit]
 end
 
-function ns.GetStandalonePosition(unit)
-	local groupKey = ns.GetUnitGroup(unit) or unit
-	local containerKey = ns.GetStandaloneContainerKey(groupKey)
-	return ns.DB().standalone[containerKey]
-end
-
 function ns.SaveStandalonePosition(unit, frame)
 	if not frame or not ns.DB().standalone[unit] then
 		return
@@ -33,16 +27,6 @@ function ns.SaveStandalonePosition(unit, frame)
 	saved.relativePoint = relativePoint or point
 	saved.x = x or ns.NUMBER.ZERO
 	saved.y = y or ns.NUMBER.ZERO
-end
-
-function ns.SetAttachedOffset(unit, x, y)
-	local saved = ns.DB().attached[unit]
-	if not saved then
-		return false
-	end
-	saved.x = tonumber(x) or saved.x
-	saved.y = tonumber(y) or saved.y
-	return true
 end
 
 function ns.GetMinimapButtonAngle()

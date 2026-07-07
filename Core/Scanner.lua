@@ -30,8 +30,21 @@ local function build_filter(unit, auraType)
 	return filter
 end
 
+local BAR_SORT_NATIVE_RULE = {
+	[ns.BAR_SORT.ALPHA_ASC] = ns.SORT_RULE.NAME_ONLY,
+	[ns.BAR_SORT.ALPHA_DESC] = ns.SORT_RULE.NAME_ONLY,
+	[ns.BAR_SORT.TIME_LEFT_ASC] = ns.SORT_RULE.EXPIRATION,
+	[ns.BAR_SORT.TIME_LEFT_DESC] = ns.SORT_RULE.EXPIRATION,
+	[ns.BAR_SORT.MAX_DURATION_ASC] = ns.SORT_RULE.DEFAULT,
+	[ns.BAR_SORT.MAX_DURATION_DESC] = ns.SORT_RULE.DEFAULT,
+}
+
 local function get_sort_rule(unit, auraType)
 	local enumTable = Enum and Enum.UnitAuraSortRule
+	if ns.GetUnitStyle(unit, auraType) == ns.AURA_STYLE.BAR then
+		local nativeRule = BAR_SORT_NATIVE_RULE[ns.GetUnitBarSort(unit, auraType)] or ns.SORT_RULE.DEFAULT
+		return get_enum_value(enumTable, nativeRule)
+	end
 	return get_enum_value(enumTable, ns.GetUnitSortRule(unit, auraType))
 end
 

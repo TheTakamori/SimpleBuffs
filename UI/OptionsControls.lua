@@ -121,20 +121,6 @@ function ns.CreateOptionsCheck(parent, text, y, getter, setter, x, refresh, tool
 	return check
 end
 
-function ns.CreateOptionsCheckAt(parent, text, x, y, getter, setter, refresh)
-	local check = ns.CreateOptionsCheck(parent, text, y, getter, setter, nil, refresh)
-	check:ClearAllPoints()
-	check:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
-	return check
-end
-
-function ns.CreateOptionsCheckOnRow(parent, text, x, y, getter, setter, refresh)
-	local check = ns.CreateOptionsCheck(parent, text, y, getter, setter, nil, refresh)
-	check:ClearAllPoints()
-	check:SetPoint(ns.UI.ANCHOR_LEFT, parent, ns.UI.ANCHOR_TOPLEFT, x, y)
-	return check
-end
-
 function ns.CreateOptionsDropdownOnRow(parent, x, y, width, values, getter, setter, labels, tooltip, refresh)
 	local dropdown = CreateFrame(ns.UI.DROPDOWN_BUTTON, nil, parent, ns.UI.WOW_STYLE_DROPDOWN_TEMPLATE)
 	dropdown:SetSize(width or ns.OPTIONS_LAYOUT.DROPDOWN_BUTTON_WIDTH, ns.OPTIONS_LAYOUT.DROPDOWN_BUTTON_HEIGHT)

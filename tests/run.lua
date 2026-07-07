@@ -20,9 +20,13 @@ _G.Enum = {
 		Expiration = "Expiration",
 		ExpirationOnly = "ExpirationOnly",
 		Unsorted = "Unsorted",
+		NameOnly = "NameOnly",
 	},
 	UnitAuraSortDirection = {
 		Normal = "Normal",
+	},
+	StatusBarFillDirection = {
+		Reverse = "Reverse",
 	},
 }
 
@@ -96,6 +100,7 @@ local runner = support.new_runner()
 
 require("units_spec")(runner, SimpleBuffs)
 require("state_spec")(runner, SimpleBuffs)
+require("position_state_spec")(runner, SimpleBuffs)
 require("scanner_spec")(runner, SimpleBuffs)
 require("model_spec")(runner, SimpleBuffs)
 require("options_spec")(runner, SimpleBuffs)

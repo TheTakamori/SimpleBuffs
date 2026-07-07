@@ -2,7 +2,7 @@
 ## Title: Simple Buffs
 ## Notes: Shows configurable buff and debuff timers for all supported unit frames with /sbuff.
 ## Author: Takamori
-## Version: 1.2.1
+## Version: 1.3.0
 ## IconTexture: Interface\AddOns\SimpleBuffs\Media\Icons\simplebuffs-64.png
 ## SavedVariables: SimpleBuffsDB
 

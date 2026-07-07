@@ -85,6 +85,10 @@ local LEGACY_UNIT_AURA_KEYS = {
 	"showCountdown",
 	"showSwipe",
 	"showCounts",
+	"showIcon",
+	"style",
+	"barWidth",
+	"barSort",
 }
 
 local function absorb_legacy_flat_into_aura(unitOptions)
@@ -141,6 +145,10 @@ local function sanitize_aura_options(groupKey, auraType, auraOpts, rawUnitOption
 	auraOpts.showCountdown = migrated_boolean(auraOpts.showCountdown, migrations.showCountdown, raw_first("showCountdown"))
 	auraOpts.showSwipe = migrated_boolean(auraOpts.showSwipe, migrations.showSwipe, raw_first("showSwipe"))
 	auraOpts.showCounts = migrated_boolean(auraOpts.showCounts, migrations.showCounts, raw_first("showCounts"))
+	auraOpts.showIcon = migrated_boolean(auraOpts.showIcon, migrations.showIcon, raw_first("showIcon"))
+	auraOpts.style = migration_or_default(ns.AURA_STYLE_ORDER, auraOpts.style, migrations.style, defaultsAura.style, raw_first("style"))
+	auraOpts.barWidth = migrated_number(auraOpts.barWidth, migrations.barWidth, ns.LIMITS.BAR_WIDTH_MIN, ns.LIMITS.BAR_WIDTH_MAX, defaultsAura.barWidth, raw_first("barWidth"), true)
+	auraOpts.barSort = migration_or_default(ns.BAR_SORT_ORDER, auraOpts.barSort, migrations.barSort, defaultsAura.barSort, raw_first("barSort"))
 end
 
 local function sanitize_unit_options(groupKey, unitOptions, migrations)
@@ -200,6 +208,10 @@ local function sanitize_db(db, migrations)
 	appearance.showSwipe = nil
 	appearance.showCounts = nil
 	appearance.showTitles = nil
+	appearance.showIcon = nil
+	appearance.style = nil
+	appearance.barWidth = nil
+	appearance.barSort = nil
 	appearance.rowSpacing = clamp(appearance.rowSpacing, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.appearance.rowSpacing)
 
 	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
@@ -241,6 +253,10 @@ local function capture_raw_unit_options(units)
 							showCountdown = block.showCountdown,
 							showSwipe = block.showSwipe,
 							showCounts = block.showCounts,
+							showIcon = block.showIcon,
+							style = block.style,
+							barWidth = block.barWidth,
+							barSort = block.barSort,
 						}
 					end
 				end
@@ -258,6 +274,10 @@ local function capture_raw_unit_options(units)
 				showCountdown = options.showCountdown,
 				showSwipe = options.showSwipe,
 				showCounts = options.showCounts,
+				showIcon = options.showIcon,
+				style = options.style,
+				barWidth = options.barWidth,
+				barSort = options.barSort,
 				aura = auraSnapshot,
 			}
 		end

@@ -16,8 +16,12 @@ local function get_or_create_row(frame, auraType)
 	return row
 end
 
-local function position_button(button, row, index, size, spacing, layout)
+local function position_button(button, row, index, size, spacing, layout, style)
 	button:ClearAllPoints()
+	if style == ns.AURA_STYLE.BAR then
+		button:SetPoint(ns.UI.ANCHOR_TOPLEFT, row, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, -((index - ns.LAYOUT_METRIC.INDEX_OFFSET) * (size + spacing)))
+		return
+	end
 	if layout == ns.LAYOUT.VERTICAL then
 		button:SetPoint(ns.UI.ANCHOR_TOPLEFT, row, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, -((index - ns.LAYOUT_METRIC.INDEX_OFFSET) * (size + spacing)))
 	elseif layout == ns.LAYOUT.VERTICAL_REVERSE then
@@ -29,9 +33,12 @@ local function position_button(button, row, index, size, spacing, layout)
 	end
 end
 
-local function layout_size(count, size, spacing, layout)
+local function layout_size(count, size, spacing, layout, style, barWidth)
 	if count <= ns.NUMBER.ZERO then
 		return ns.LAYOUT_METRIC.MIN_SIZE, size
+	end
+	if style == ns.AURA_STYLE.BAR then
+		return barWidth, count * size + math.max(ns.NUMBER.ZERO, count - ns.LAYOUT_METRIC.INDEX_OFFSET) * spacing
 	end
 	if layout == ns.LAYOUT.VERTICAL or layout == ns.LAYOUT.VERTICAL_REVERSE then
 		return size, count * size + math.max(ns.NUMBER.ZERO, count - ns.LAYOUT_METRIC.INDEX_OFFSET) * spacing
@@ -43,8 +50,10 @@ function ns.UpdateAuraDisplayRow(row, model, appearance, layout)
 	local entries = (model and model.rows) or {}
 	local size = appearance.iconSize
 	local spacing = appearance.spacing
+	local style = appearance.style or ns.AURA_STYLE.ICON
+	local barWidth = appearance.barWidth or size
 	layout = layout or ns.DEFAULTS.appearance.layout
-	local width, height = layout_size(#entries, size, spacing, layout)
+	local width, height = layout_size(#entries, size, spacing, layout, style, barWidth)
 
 	row:SetSize(width, height)
 
@@ -85,7 +94,7 @@ function ns.UpdateAuraDisplayRow(row, model, appearance, layout)
 			row.buttons[entry.key] = button
 		end
 		ns.ApplyAuraButton(button, entry, size, appearance)
-		position_button(button, row, index, size, spacing, layout)
+		position_button(button, row, index, size, spacing, layout, style)
 	end
 
 	row:SetShown(#entries > 0)

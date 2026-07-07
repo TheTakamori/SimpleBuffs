@@ -2,8 +2,8 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.ADDON_NAME = "SimpleBuffs"
-ns.VERSION = "1.2.1"
-ns.DB_VERSION = 6
+ns.VERSION = "1.3.0"
+ns.DB_VERSION = 7
 ns.SELECT_COUNT = "#"
 
 ns.SLASH_COMMANDS = {
@@ -108,6 +108,7 @@ ns.SORT_RULE = {
 	EXPIRATION = "Expiration",
 	EXPIRATION_ONLY = "ExpirationOnly",
 	UNSORTED = "Unsorted",
+	NAME_ONLY = "NameOnly",
 }
 
 ns.SORT_RULE_ORDER = {
@@ -143,4 +144,46 @@ ns.FILTER_MODE_LABEL = {
 	player = "Player/Pet Cast",
 	important = "Important",
 	["crowd-control"] = "Crowd Control",
+}
+
+ns.AURA_STYLE = {
+	ICON = "icon",
+	BAR = "bar",
+}
+
+ns.AURA_STYLE_ORDER = {
+	ns.AURA_STYLE.ICON,
+	ns.AURA_STYLE.BAR,
+}
+
+ns.AURA_STYLE_LABEL = {
+	icon = "Icons",
+	bar = "Bar Stack",
+}
+
+ns.BAR_SORT = {
+	ALPHA_ASC = "alpha-asc",
+	ALPHA_DESC = "alpha-desc",
+	TIME_LEFT_ASC = "time-left-asc",
+	TIME_LEFT_DESC = "time-left-desc",
+	MAX_DURATION_ASC = "max-duration-asc",
+	MAX_DURATION_DESC = "max-duration-desc",
+}
+
+ns.BAR_SORT_ORDER = {
+	ns.BAR_SORT.ALPHA_ASC,
+	ns.BAR_SORT.ALPHA_DESC,
+	ns.BAR_SORT.TIME_LEFT_ASC,
+	ns.BAR_SORT.TIME_LEFT_DESC,
+	ns.BAR_SORT.MAX_DURATION_ASC,
+	ns.BAR_SORT.MAX_DURATION_DESC,
+}
+
+ns.BAR_SORT_LABEL = {
+	["alpha-asc"] = "A-Z",
+	["alpha-desc"] = "Z-A",
+	["time-left-asc"] = "Time Left: Short to Long",
+	["time-left-desc"] = "Time Left: Long to Short",
+	["max-duration-asc"] = "Max Duration: Short to Long",
+	["max-duration-desc"] = "Max Duration: Long to Short",
 }

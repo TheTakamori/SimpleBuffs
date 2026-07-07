@@ -38,7 +38,7 @@ ns.OPTIONS_UNIT_DROPDOWN_COLUMNS = {
 		values = ns.ATTACHED_POSITION_ORDER,
 		hideLabel = true,
 		sameRowAsPrevious = true,
-		x = ns.OPTIONS_LAYOUT.TAB_PRIMARY_CONTROL_X + ns.OPTIONS_LAYOUT.TAB_DROPDOWN_WIDTH + ns.OPTIONS_LAYOUT.TAB_INLINE_CONTROL_GAP_X,
+		x = ns.OPTIONS_LAYOUT.TAB_SECONDARY_CONTROL_X,
 		get = function(groupKey)
 			return ns.GetUnitGroupAttachedPosition(groupKey)
 		end,
@@ -54,6 +54,37 @@ ns.OPTIONS_UNIT_DROPDOWN_COLUMNS = {
 		end,
 	},
 	{
+		header = ns.TEXT.OPTIONS_STYLE,
+		perAura = true,
+		values = ns.AURA_STYLE_ORDER,
+		get = function(groupKey, auraType)
+			return ns.GetUnitGroupStyle(groupKey, auraType)
+		end,
+		set = function(groupKey, auraType, value)
+			ns.SetUnitGroupStyle(groupKey, auraType, value)
+		end,
+		labels = ns.AURA_STYLE_LABEL,
+		tooltip = ns.TEXT.OPTIONS_TOOLTIP_STYLE,
+	},
+	{
+		header = ns.TEXT.OPTIONS_FILTER,
+		perAura = true,
+		sameRowAsPrevious = true,
+		x = ns.OPTIONS_LAYOUT.TAB_SECONDARY_CONTROL_X,
+		values = ns.FILTER_MODE_ORDER,
+		get = function(groupKey, auraType)
+			return ns.GetUnitGroupFilterMode(groupKey, auraType)
+		end,
+		set = function(groupKey, auraType, value)
+			ns.SetUnitGroupFilterMode(groupKey, auraType, value)
+		end,
+		labels = ns.FILTER_MODE_LABEL,
+		tooltip = ns.TEXT.OPTIONS_TOOLTIP_FILTER,
+	},
+	{
+		-- Shares a row with Bar Sort below: Layout only applies to the icon
+		-- style and Bar Sort only applies to the bar style, so the two never
+		-- show at once and can occupy the same slot.
 		header = ns.TEXT.OPTIONS_LAYOUT,
 		perAura = true,
 		values = ns.LAYOUT_ORDER,
@@ -66,10 +97,32 @@ ns.OPTIONS_UNIT_DROPDOWN_COLUMNS = {
 		labels = ns.LAYOUT_LABEL,
 		tooltip = ns.TEXT.OPTIONS_TOOLTIP_LAYOUT,
 		refresh = ns.RepaintOptionsDisplays,
+		showWhen = function(groupKey, auraType)
+			return ns.GetUnitGroupStyle(groupKey, auraType) ~= ns.AURA_STYLE.BAR
+		end,
+	},
+	{
+		header = ns.TEXT.OPTIONS_BAR_SORT,
+		perAura = true,
+		sameRowAsPrevious = true,
+		values = ns.BAR_SORT_ORDER,
+		get = function(groupKey, auraType)
+			return ns.GetUnitGroupBarSort(groupKey, auraType)
+		end,
+		set = function(groupKey, auraType, value)
+			ns.SetUnitGroupBarSort(groupKey, auraType, value)
+		end,
+		labels = ns.BAR_SORT_LABEL,
+		tooltip = ns.TEXT.OPTIONS_TOOLTIP_BAR_SORT,
+		showWhen = function(groupKey, auraType)
+			return ns.GetUnitGroupStyle(groupKey, auraType) == ns.AURA_STYLE.BAR
+		end,
 	},
 	{
 		header = ns.TEXT.OPTIONS_SORT,
 		perAura = true,
+		sameRowAsPrevious = true,
+		x = ns.OPTIONS_LAYOUT.TAB_SECONDARY_CONTROL_X,
 		values = ns.SORT_RULE_ORDER,
 		get = function(groupKey, auraType)
 			return ns.GetUnitGroupSortRule(groupKey, auraType)
@@ -79,19 +132,9 @@ ns.OPTIONS_UNIT_DROPDOWN_COLUMNS = {
 		end,
 		labels = ns.SORT_RULE_LABEL,
 		tooltip = ns.TEXT.OPTIONS_TOOLTIP_SORT,
-	},
-	{
-		header = ns.TEXT.OPTIONS_FILTER,
-		perAura = true,
-		values = ns.FILTER_MODE_ORDER,
-		get = function(groupKey, auraType)
-			return ns.GetUnitGroupFilterMode(groupKey, auraType)
+		showWhen = function(groupKey, auraType)
+			return ns.GetUnitGroupStyle(groupKey, auraType) ~= ns.AURA_STYLE.BAR
 		end,
-		set = function(groupKey, auraType, value)
-			ns.SetUnitGroupFilterMode(groupKey, auraType, value)
-		end,
-		labels = ns.FILTER_MODE_LABEL,
-		tooltip = ns.TEXT.OPTIONS_TOOLTIP_FILTER,
 	},
 }
 
@@ -115,6 +158,19 @@ ns.OPTIONS_STYLE_SLIDERS = {
 		step = ns.OPTIONS_LAYOUT.SLIDER_STEP,
 		tooltip = ns.TEXT.OPTIONS_TOOLTIP_SPACING,
 		refresh = ns.RepaintOptionsDisplays,
+	},
+	{
+		text = ns.TEXT.OPTIONS_BAR_WIDTH,
+		key = ns.DB_KEY.BAR_WIDTH,
+		perAura = true,
+		min = ns.LIMITS.BAR_WIDTH_MIN,
+		max = ns.LIMITS.BAR_WIDTH_MAX,
+		step = ns.OPTIONS_LAYOUT.SLIDER_STEP,
+		tooltip = ns.TEXT.OPTIONS_TOOLTIP_BAR_WIDTH,
+		refresh = ns.RepaintOptionsDisplays,
+		showWhen = function(groupKey, auraType)
+			return ns.GetUnitGroupStyle(groupKey, auraType) == ns.AURA_STYLE.BAR
+		end,
 	},
 	{
 		text = ns.TEXT.OPTIONS_MAX_AURAS,
@@ -155,10 +211,29 @@ ns.OPTIONS_STYLE_CHECKS = {
 		refresh = ns.RepaintOptionsDisplays,
 	},
 	{
+		-- Shares a row with Show Icon: Show Swipe only applies to the icon
+		-- style and Show Icon only applies to the bar style, so the two
+		-- never show at once and can occupy the same slot.
 		text = ns.TEXT.OPTIONS_SHOW_SWIPE,
 		key = ns.DB_KEY.SHOW_SWIPE,
 		perAura = true,
+		sameRowAsPrevious = true,
+		x = ns.OPTIONS_LAYOUT.TAB_CHECK_SECOND_COLUMN_X,
 		refresh = ns.RepaintOptionsDisplays,
+		showWhen = function(groupKey, auraType)
+			return ns.GetUnitGroupStyle(groupKey, auraType) ~= ns.AURA_STYLE.BAR
+		end,
+	},
+	{
+		text = ns.TEXT.OPTIONS_SHOW_ICON,
+		key = ns.DB_KEY.SHOW_ICON,
+		perAura = true,
+		sameRowAsPrevious = true,
+		x = ns.OPTIONS_LAYOUT.TAB_CHECK_SECOND_COLUMN_X,
+		refresh = ns.RepaintOptionsDisplays,
+		showWhen = function(groupKey, auraType)
+			return ns.GetUnitGroupStyle(groupKey, auraType) == ns.AURA_STYLE.BAR
+		end,
 	},
 	{
 		text = ns.TEXT.OPTIONS_SHOW_COUNTS,

@@ -25,6 +25,9 @@ return function(runner, ns)
 		assert.equal(db.units.player.aura.buff.maxAuras, ns.DEFAULTS.units.player.aura.buff.maxAuras)
 		assert.equal(db.units.player.aura.buff.scale, ns.DEFAULTS.units.player.aura.buff.scale)
 		assert.equal(db.units.player.aura.buff.showCountdown, true)
+		assert.equal(db.units.player.aura.buff.style, ns.AURA_STYLE.ICON)
+		assert.equal(db.units.player.aura.buff.barWidth, ns.DEFAULTS.units.player.aura.buff.barWidth)
+		assert.equal(db.units.player.aura.buff.barSort, ns.BAR_SORT.ALPHA_ASC)
 		assert.equal(db.units.party.mode, ns.DISPLAY_MODE.ATTACHED)
 		assert.equal(db.units.party.attachedPosition, ns.ATTACHED_POSITION.RIGHT)
 		assert.equal(db.units.partyPets.attachedPosition, ns.ATTACHED_POSITION.RIGHT)
@@ -70,6 +73,9 @@ return function(runner, ns)
 					spacing = -20,
 					maxAuras = 0,
 					scale = 9,
+					style = "grid",
+					barWidth = 5,
+					barSort = "random",
 				},
 				party = {},
 				raid = {
@@ -104,6 +110,10 @@ return function(runner, ns)
 		assert.equal(db.units.player.aura.buff.spacing, ns.LIMITS.SPACING_MIN)
 		assert.equal(db.units.player.aura.buff.maxAuras, ns.LIMITS.MAX_AURAS_MIN)
 		assert.equal(db.units.player.aura.buff.scale, ns.LIMITS.SCALE_MAX)
+		assert.equal(db.units.player.aura.buff.style, ns.DEFAULTS.units.player.aura.buff.style)
+		assert.equal(db.units.player.aura.buff.barWidth, ns.LIMITS.BAR_WIDTH_MIN)
+		assert.equal(db.units.player.aura.buff.barSort, ns.DEFAULTS.units.player.aura.buff.barSort)
+		assert.equal(db.version, ns.DB_VERSION)
 		assert.equal(db.units.party.buff, true)
 		assert.equal(db.units.raid.mode, ns.DISPLAY_MODE.BOTH)
 		assert.equal(db.appearance.layout, nil)
@@ -309,6 +319,35 @@ return function(runner, ns)
 		assert.equal(ns.GetUnitFilterMode("pet", ns.AURA_TYPE.BUFF), ns.FILTER_MODE.PLAYER)
 	end)
 
+	runner:test("per-aura-type and per-group fields stay isolated from each other", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		ns.SetUnitGroupLayout(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.LAYOUT.VERTICAL)
+		ns.SetUnitGroupSortRule(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.SORT_RULE.UNSORTED)
+		ns.SetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.AURA_STYLE.BAR)
+		ns.SetUnitGroupBarSort(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.BAR_SORT.ALPHA_DESC)
+		ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.FILTER_MODE.IMPORTANT)
+
+		-- The debuff block for the same group must be untouched.
+		assert.equal(ns.GetUnitGroupLayout(ns.UNIT_GROUP.PET, ns.AURA_TYPE.DEBUFF), ns.DEFAULTS.units.pet.aura.debuff.layout)
+		assert.equal(ns.GetUnitGroupSortRule(ns.UNIT_GROUP.PET, ns.AURA_TYPE.DEBUFF), ns.DEFAULTS.units.pet.aura.debuff.sortRule)
+		assert.equal(ns.GetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.DEBUFF), ns.DEFAULTS.units.pet.aura.debuff.style)
+		assert.equal(ns.GetUnitGroupBarSort(ns.UNIT_GROUP.PET, ns.AURA_TYPE.DEBUFF), ns.DEFAULTS.units.pet.aura.debuff.barSort)
+		assert.equal(ns.GetUnitGroupFilterMode(ns.UNIT_GROUP.PET, ns.AURA_TYPE.DEBUFF), ns.DEFAULTS.units.pet.aura.debuff.filterMode)
+
+		-- The same aura type on a different group must also be untouched.
+		assert.equal(ns.GetUnitGroupLayout(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF), ns.DEFAULTS.units.player.aura.buff.layout)
+		assert.equal(ns.GetUnitGroupSortRule(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF), ns.DEFAULTS.units.player.aura.buff.sortRule)
+		assert.equal(ns.GetUnitGroupStyle(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF), ns.DEFAULTS.units.player.aura.buff.style)
+		assert.equal(ns.GetUnitGroupBarSort(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF), ns.DEFAULTS.units.player.aura.buff.barSort)
+		assert.equal(ns.GetUnitGroupFilterMode(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF), ns.DEFAULTS.units.player.aura.buff.filterMode)
+
+		-- Invalid values must fall through to the previously-set value, not a shared default.
+		assert.equal(ns.SetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, "grid"), false)
+		assert.equal(ns.GetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.AURA_STYLE.BAR)
+	end)
+
 	runner:test("legacy global display mode migrates to supported groups", function()
 		_G.SimpleBuffsDB = {
 			version = 2,
@@ -398,6 +437,51 @@ return function(runner, ns)
 		assert.equal(ns.GetUnitGroupFilterMode(ns.UNIT_GROUP.PARTY, ns.AURA_TYPE.BUFF), ns.FILTER_MODE.PLAYER)
 		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PARTY, ns.AURA_TYPE.BUFF).iconSize, 36)
 		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PARTY, ns.AURA_TYPE.BUFF).showCounts, false)
+	end)
+
+	runner:test("per-group style and bar sort validate allowed values", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		assert.equal(ns.GetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.AURA_STYLE.ICON)
+		assert.equal(ns.SetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.AURA_STYLE.BAR), true)
+		assert.equal(ns.GetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.AURA_STYLE.BAR)
+		assert.equal(ns.SetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, "grid"), false)
+		assert.equal(ns.GetUnitGroupStyle(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.AURA_STYLE.BAR)
+		assert.equal(ns.GetUnitStyle("pet", ns.AURA_TYPE.BUFF), ns.AURA_STYLE.BAR)
+
+		assert.equal(ns.GetUnitGroupBarSort(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.BAR_SORT.ALPHA_ASC)
+		assert.equal(ns.SetUnitGroupBarSort(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.BAR_SORT.MAX_DURATION_DESC), true)
+		assert.equal(ns.GetUnitGroupBarSort(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.BAR_SORT.MAX_DURATION_DESC)
+		assert.equal(ns.SetUnitGroupBarSort(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, "random"), false)
+		assert.equal(ns.GetUnitBarSort("pet", ns.AURA_TYPE.BUFF), ns.BAR_SORT.MAX_DURATION_DESC)
+	end)
+
+	runner:test("appearance exposes style and clamped bar width", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF).style, ns.AURA_STYLE.ICON)
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF).barWidth, ns.DEFAULTS.units.pet.aura.buff.barWidth)
+
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.DB_KEY.BAR_WIDTH, 1000)
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF).barWidth, ns.LIMITS.BAR_WIDTH_MAX)
+
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.DB_KEY.BAR_WIDTH, 1)
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF).barWidth, ns.LIMITS.BAR_WIDTH_MIN)
+	end)
+
+	runner:test("bar mode icon defaults on and can be toggled off", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF).showIcon, true)
+
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.DB_KEY.SHOW_ICON, false)
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF).showIcon, false)
+
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.DB_KEY.SHOW_ICON, true)
+		assert.equal(ns.GetUnitGroupAppearance(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF).showIcon, true)
 	end)
 
 	runner:test("minimap settings persist with clamped angle", function()

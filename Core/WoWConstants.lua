@@ -4,7 +4,6 @@ local ns = SimpleBuffs
 ns.DB_KEY = {
 	ICON_SIZE = "iconSize",
 	SPACING = "spacing",
-	ROW_SPACING = "rowSpacing",
 	MAX_AURAS = "maxAuras",
 	SCALE = "scale",
 	LAYOUT = "layout",
@@ -13,6 +12,10 @@ ns.DB_KEY = {
 	SHOW_COUNTDOWN = "showCountdown",
 	SHOW_SWIPE = "showSwipe",
 	SHOW_COUNTS = "showCounts",
+	SHOW_ICON = "showIcon",
+	STYLE = "style",
+	BAR_WIDTH = "barWidth",
+	BAR_SORT = "barSort",
 }
 
 ns.AURA_FILTER_SUFFIX = {

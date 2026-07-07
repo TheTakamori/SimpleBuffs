@@ -9,7 +9,7 @@ CONSTANTS = ROOT / "Core" / "Constants.lua"
 TOC = ROOT / f"{ADDON_NAME}.toc"
 VERSION = re.search(r'ns\.VERSION\s*=\s*"([^"]+)"', CONSTANTS.read_text()).group(1)
 OUTPUT = ROOT / f"{ADDON_NAME}-{VERSION}.zip"
-EXCLUDED_DIRS = {".git", "__pycache__", "build", "dist", "release", "releases", "tests"}
+EXCLUDED_DIRS = {".git", "__pycache__", "build", "dist", "release", "releases", "tests", "plans"}
 EXCLUDED_FILES = {".gitignore", "CURSEFORGE_SUBMISSION.md", "package.py"}
 
 toc_version = re.search(r"^## Version:\s*(.+)$", TOC.read_text(), re.MULTILINE).group(1)

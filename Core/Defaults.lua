@@ -9,6 +9,10 @@ local DEFAULT_STYLE = {
 	showCountdown = true,
 	showSwipe = true,
 	showCounts = true,
+	showIcon = true,
+	style = ns.AURA_STYLE.ICON,
+	barWidth = 160,
+	barSort = ns.BAR_SORT.ALPHA_ASC,
 }
 
 local function default_aura_options()
@@ -23,6 +27,10 @@ local function default_aura_options()
 		showCountdown = DEFAULT_STYLE.showCountdown,
 		showSwipe = DEFAULT_STYLE.showSwipe,
 		showCounts = DEFAULT_STYLE.showCounts,
+		showIcon = DEFAULT_STYLE.showIcon,
+		style = DEFAULT_STYLE.style,
+		barWidth = DEFAULT_STYLE.barWidth,
+		barSort = DEFAULT_STYLE.barSort,
 	}
 end
 
@@ -66,7 +74,11 @@ ns.DEFAULTS = {
 		showCountdown = DEFAULT_STYLE.showCountdown,
 		showSwipe = DEFAULT_STYLE.showSwipe,
 		showCounts = DEFAULT_STYLE.showCounts,
+		showIcon = DEFAULT_STYLE.showIcon,
 		scale = DEFAULT_STYLE.scale,
+		style = DEFAULT_STYLE.style,
+		barWidth = DEFAULT_STYLE.barWidth,
+		barSort = DEFAULT_STYLE.barSort,
 	},
 	units = {
 		player = default_unit_options(),

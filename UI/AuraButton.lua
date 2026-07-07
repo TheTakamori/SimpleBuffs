@@ -15,8 +15,9 @@ local function set_count_text(button, entry, appearance)
 end
 
 local function set_cooldown(button, entry, appearance)
+	local style = appearance.style or ns.AURA_STYLE.ICON
 	button.cooldown:SetHideCountdownNumbers(not appearance.showCountdown)
-	button.cooldown:SetDrawSwipe(appearance.showSwipe == true)
+	button.cooldown:SetDrawSwipe(style ~= ns.AURA_STYLE.BAR and appearance.showSwipe == true)
 	button.cooldown:SetDrawEdge(false)
 	if button.cooldown.SetUseAuraDisplayTime then
 		button.cooldown:SetUseAuraDisplayTime(true)
@@ -167,6 +168,149 @@ local function apply_icon(button, aura)
 	end
 end
 
+local function apply_name(fontString, aura)
+	if not fontString then
+		return
+	end
+
+	local text = ns.TEXT.AURA_TOOLTIP_FALLBACK
+	if aura then
+		local ok, name = pcall(function()
+			return aura.name
+		end)
+		if ok and type(name) == ns.LUA_TYPE.STRING then
+			text = name
+		end
+	end
+	fontString:SetText(text)
+end
+
+local function ensure_bar_widgets(button)
+	if button.statusBar then
+		return
+	end
+
+	local statusBar = CreateFrame(ns.UI.STATUS_BAR, nil, button)
+	statusBar:SetStatusBarTexture(ns.TEXTURE.BAR_STATUS)
+	button.statusBar = statusBar
+
+	local background = statusBar:CreateTexture(nil, ns.UI.BACKGROUND)
+	background:SetAllPoints()
+	background:SetColorTexture(ns.BAR_ROW.BACKGROUND_R, ns.BAR_ROW.BACKGROUND_G, ns.BAR_ROW.BACKGROUND_B, ns.BAR_ROW.BACKGROUND_A)
+	button.statusBarBackground = background
+
+	local barName = statusBar:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
+	barName:SetJustifyH(ns.UI.ANCHOR_LEFT)
+	button.barName = barName
+end
+
+local function get_countdown_text(button)
+	if not button.cooldown.GetCountdownFontString then
+		return nil
+	end
+	return button.cooldown:GetCountdownFontString()
+end
+
+local function capture_default_countdown_point(button, countdownText)
+	if button.countdownDefaultPoint or not countdownText or not countdownText.GetPoint then
+		return
+	end
+	local point, relativeTo, relativePoint, x, y = countdownText:GetPoint(1)
+	if point then
+		button.countdownDefaultPoint = { point = point, relativeTo = relativeTo, relativePoint = relativePoint, x = x, y = y }
+	end
+end
+
+local function restore_default_countdown_point(button, countdownText)
+	if not countdownText or not button.countdownDefaultPoint then
+		return
+	end
+	local saved = button.countdownDefaultPoint
+	countdownText:ClearAllPoints()
+	countdownText:SetPoint(saved.point, saved.relativeTo, saved.relativePoint, saved.x, saved.y)
+end
+
+local function apply_bar_layout(button, size, barWidth, showIcon)
+	ensure_bar_widgets(button)
+
+	button.icon:SetShown(showIcon)
+
+	local statusBar = button.statusBar
+	statusBar:ClearAllPoints()
+	if showIcon then
+		button.icon:ClearAllPoints()
+		button.icon:SetPoint(ns.UI.ANCHOR_LEFT, button, ns.UI.ANCHOR_LEFT, ns.LAYOUT_METRIC.ORIGIN_X, ns.LAYOUT_METRIC.ORIGIN_Y)
+		button.icon:SetSize(size, size)
+		statusBar:SetPoint(ns.UI.ANCHOR_LEFT, button.icon, ns.UI.ANCHOR_RIGHT, ns.BAR_ROW.ICON_GAP_X, ns.LAYOUT_METRIC.ORIGIN_Y)
+	else
+		statusBar:SetPoint(ns.UI.ANCHOR_LEFT, button, ns.UI.ANCHOR_LEFT, ns.LAYOUT_METRIC.ORIGIN_X, ns.LAYOUT_METRIC.ORIGIN_Y)
+	end
+	statusBar:SetPoint(ns.UI.ANCHOR_RIGHT, button, ns.UI.ANCHOR_RIGHT, ns.LAYOUT_METRIC.ORIGIN_X, ns.LAYOUT_METRIC.ORIGIN_Y)
+	statusBar:SetHeight(size)
+	statusBar:Show()
+
+	local iconReserve = showIcon and (size + ns.BAR_ROW.ICON_GAP_X) or ns.NUMBER.ZERO
+	local nameWidth = math.max(ns.LAYOUT_METRIC.MIN_SIZE, barWidth - iconReserve - ns.BAR_ROW.NAME_TEXT_INSET_X - ns.BAR_ROW.COUNTDOWN_RESERVE - ns.BAR_ROW.COUNT_RESERVE)
+	button.barName:ClearAllPoints()
+	button.barName:SetPoint(ns.UI.ANCHOR_LEFT, statusBar, ns.UI.ANCHOR_LEFT, ns.BAR_ROW.NAME_TEXT_INSET_X, ns.LAYOUT_METRIC.ORIGIN_Y)
+	button.barName:SetWidth(nameWidth)
+	button.barName:Show()
+
+	local countdownText = get_countdown_text(button)
+	if countdownText then
+		capture_default_countdown_point(button, countdownText)
+		countdownText:ClearAllPoints()
+		countdownText:SetPoint(ns.UI.ANCHOR_RIGHT, button, ns.UI.ANCHOR_RIGHT, -ns.BAR_ROW.COUNTDOWN_OFFSET_X, ns.LAYOUT_METRIC.ORIGIN_Y)
+	end
+
+	button.count:ClearAllPoints()
+	button.count:SetPoint(ns.UI.ANCHOR_RIGHT, button, ns.UI.ANCHOR_RIGHT, -ns.BAR_ROW.COUNT_OFFSET_X, ns.LAYOUT_METRIC.ORIGIN_Y)
+end
+
+local function apply_icon_layout(button, size)
+	button.icon:ClearAllPoints()
+	button.icon:SetAllPoints()
+
+	if button.statusBar then
+		button.statusBar:Hide()
+	end
+	if button.barName then
+		button.barName:Hide()
+	end
+
+	local countdownText = get_countdown_text(button)
+	restore_default_countdown_point(button, countdownText)
+
+	button.count:ClearAllPoints()
+	button.count:SetPoint(ns.UI.ANCHOR_BOTTOMRIGHT, button, ns.UI.ANCHOR_BOTTOMRIGHT, ns.AURA_BUTTON.COUNT_OFFSET_X, ns.AURA_BUTTON.COUNT_OFFSET_Y)
+end
+
+local function set_bar_timer(button, entry)
+	local statusBar = button.statusBar
+	if not statusBar then
+		return
+	end
+
+	if entry.durationObject and statusBar.SetTimerDuration then
+		local fillDirection = Enum and Enum.StatusBarFillDirection and Enum.StatusBarFillDirection.Reverse
+		statusBar:SetTimerDuration(entry.durationObject, fillDirection)
+		return
+	end
+
+	-- Non-Midnight fallback for local testing on older clients.
+	local aura = entry.aura
+	local duration = aura and aura.duration
+	local expirationTime = aura and aura.expirationTime
+	if statusBar.SetMinMaxValues and statusBar.SetValue then
+		statusBar:SetMinMaxValues(ns.NUMBER.ZERO, duration and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION and duration or ns.NUMBER.ONE)
+		if duration and expirationTime and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION then
+			statusBar:SetValue(math.max(ns.NUMBER.ZERO, expirationTime - (GetTime and GetTime() or ns.NUMBER.ZERO)))
+		else
+			statusBar:SetValue(ns.NUMBER.ONE)
+		end
+	end
+end
+
 function ns.CreateAuraButton(parent)
 	local button = CreateFrame(ns.UI.BUTTON, nil, parent)
 	button.icon = button:CreateTexture(nil, ns.UI.BACKGROUND)
@@ -191,7 +335,9 @@ function ns.CreateAuraButton(parent)
 end
 
 function ns.ApplyAuraButton(button, entry, size, appearance)
-	button:SetSize(size, size)
+	local style = appearance.style or ns.AURA_STYLE.ICON
+	local width = style == ns.AURA_STYLE.BAR and (appearance.barWidth or size) or size
+	button:SetSize(width, size)
 	button.entry = entry
 	button.entryKey = entry.key
 	button.unit = entry.unit
@@ -202,5 +348,14 @@ function ns.ApplyAuraButton(button, entry, size, appearance)
 
 	set_cooldown(button, entry, appearance)
 	set_count_text(button, entry, appearance)
+
+	if style == ns.AURA_STYLE.BAR then
+		apply_bar_layout(button, size, width, appearance.showIcon ~= false)
+		apply_name(button.barName, aura)
+		set_bar_timer(button, entry)
+	else
+		apply_icon_layout(button, size)
+	end
+
 	button:Show()
 end

@@ -96,6 +96,24 @@ return function(runner, ns)
 		assert.equal(row.buttons.b.y, 24)
 	end)
 
+	runner:test("UpdateAuraDisplayRow stacks bar style vertically at barWidth regardless of layout", function()
+		created = 0
+		local row = make_row()
+
+		ns.UpdateAuraDisplayRow(row, model("a", "b"), {
+			iconSize = 20,
+			spacing = 4,
+			style = ns.AURA_STYLE.BAR,
+			barWidth = 150,
+		}, ns.LAYOUT.HORIZONTAL)
+
+		assert.equal(row.width, 150)
+		assert.equal(row.height, 44)
+		assert.equal(row.buttons.a.point, ns.UI.ANCHOR_TOPLEFT)
+		assert.equal(row.buttons.a.y, 0)
+		assert.equal(row.buttons.b.y, -24)
+	end)
+
 	runner:test("UpdateAuraDisplayRow reuses stale aura buttons", function()
 		created = 0
 		local row = make_row()

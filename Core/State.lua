@@ -42,6 +42,9 @@ function ns.GetUnitGroupAppearance(groupKey, auraType)
 	appearance.showCountdown = block.showCountdown ~= false
 	appearance.showSwipe = block.showSwipe ~= false
 	appearance.showCounts = block.showCounts ~= false
+	appearance.showIcon = block.showIcon ~= false
+	appearance.style = block.style or fallback.style
+	appearance.barWidth = block.barWidth or fallback.barWidth
 	return appearance
 end
 
@@ -103,103 +106,52 @@ function ns.SetUnitGroupAttachedPosition(groupKey, attachedPosition)
 	return true
 end
 
-function ns.GetUnitGroupLayout(groupKey, auraType)
-	auraType = auraType or ns.AURA_TYPE.BUFF
-	local options = ns.GetUnitGroupOptions(groupKey)
-	local fallback = ns.DEFAULTS.units[groupKey].aura[auraType]
-	if not options or type(options.aura) ~= "table" or type(options.aura[auraType]) ~= "table" then
-		return fallback.layout
-	end
-	return options.aura[auraType].layout or fallback.layout
-end
-
-function ns.GetUnitLayout(unit, auraType)
-	return ns.GetUnitGroupLayout(ns.GetUnitGroup(unit) or unit, auraType)
-end
-
-function ns.SetUnitGroupLayout(groupKey, auraType, layout)
-	if not ns.GetUnitGroupOptions(groupKey) or not ns.AURA_FILTER[auraType] or not ns.IsKnownValue(ns.LAYOUT_ORDER, layout) then
-		return false
-	end
-	local block = ensure_unit_aura_block(groupKey, auraType)
-	if not block then
-		return false
-	end
-	block.layout = layout
-	return true
-end
-
-function ns.GetUnitGroupSortRule(groupKey, auraType)
-	auraType = auraType or ns.AURA_TYPE.BUFF
-	local options = ns.GetUnitGroupOptions(groupKey)
-	local fallback = ns.DEFAULTS.units[groupKey].aura[auraType]
-	if not options or type(options.aura) ~= "table" or type(options.aura[auraType]) ~= "table" then
-		return fallback.sortRule
-	end
-	return options.aura[auraType].sortRule or fallback.sortRule
-end
-
-function ns.GetUnitSortRule(unit, auraType)
-	return ns.GetUnitGroupSortRule(ns.GetUnitGroup(unit) or unit, auraType)
-end
-
-function ns.SetUnitGroupSortRule(groupKey, auraType, sortRule)
-	if not ns.GetUnitGroupOptions(groupKey) or not ns.AURA_FILTER[auraType] or not ns.IsKnownValue(ns.SORT_RULE_ORDER, sortRule) then
-		return false
-	end
-	local block = ensure_unit_aura_block(groupKey, auraType)
-	if not block then
-		return false
-	end
-	block.sortRule = sortRule
-	return true
-end
-
-function ns.GetUnitGroupFilterMode(groupKey, auraType)
-	auraType = auraType or ns.AURA_TYPE.BUFF
-	local options = ns.GetUnitGroupOptions(groupKey)
-	local fallback = ns.DEFAULTS.units[groupKey].aura[auraType]
-	if not options or type(options.aura) ~= "table" or type(options.aura[auraType]) ~= "table" then
-		return fallback.filterMode
-	end
-	return options.aura[auraType].filterMode or fallback.filterMode
-end
-
-function ns.GetUnitFilterMode(unit, auraType)
-	return ns.GetUnitGroupFilterMode(ns.GetUnitGroup(unit) or unit, auraType)
-end
-
-function ns.SetUnitGroupFilterMode(groupKey, auraType, filterMode)
-	if not ns.GetUnitGroupOptions(groupKey) or not ns.AURA_FILTER[auraType] or not ns.IsKnownValue(ns.FILTER_MODE_ORDER, filterMode) then
-		return false
-	end
-	local block = ensure_unit_aura_block(groupKey, auraType)
-	if not block then
-		return false
-	end
-	block.filterMode = filterMode
-	return true
-end
-
-function ns.AnyUnitGroupUsesStandaloneDisplay()
-	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
-		local mode = ns.GetUnitGroupDisplayMode(groupKey)
-		if mode == ns.DISPLAY_MODE.STANDALONE or mode == ns.DISPLAY_MODE.BOTH then
-			return true
+-- Layout, style, barSort, sortRule, and filterMode all follow the same
+-- per-group/per-unit/per-aura-type get-or-fallback and validated-set shape;
+-- this factory avoids five near-identical copies of that shape.
+local function define_aura_field_accessor(fieldName, validValuesOrder, groupGetterName, unitGetterName, groupSetterName)
+	ns[groupGetterName] = function(groupKey, auraType)
+		auraType = auraType or ns.AURA_TYPE.BUFF
+		local options = ns.GetUnitGroupOptions(groupKey)
+		local fallback = ns.DEFAULTS.units[groupKey].aura[auraType]
+		if not options or type(options.aura) ~= ns.LUA_TYPE.TABLE or type(options.aura[auraType]) ~= ns.LUA_TYPE.TABLE then
+			return fallback[fieldName]
 		end
+		return options.aura[auraType][fieldName] or fallback[fieldName]
 	end
-	return false
+
+	ns[unitGetterName] = function(unit, auraType)
+		return ns[groupGetterName](ns.GetUnitGroup(unit) or unit, auraType)
+	end
+
+	ns[groupSetterName] = function(groupKey, auraType, value)
+		if not ns.GetUnitGroupOptions(groupKey) or not ns.AURA_FILTER[auraType] or not ns.IsKnownValue(validValuesOrder, value) then
+			return false
+		end
+		local block = ensure_unit_aura_block(groupKey, auraType)
+		if not block then
+			return false
+		end
+		block[fieldName] = value
+		return true
+	end
 end
 
-local function apply_appearance_value(target, key, value, fallback, allowGlobalOnly)
+define_aura_field_accessor("layout", ns.LAYOUT_ORDER, "GetUnitGroupLayout", "GetUnitLayout", "SetUnitGroupLayout")
+define_aura_field_accessor("style", ns.AURA_STYLE_ORDER, "GetUnitGroupStyle", "GetUnitStyle", "SetUnitGroupStyle")
+define_aura_field_accessor("barSort", ns.BAR_SORT_ORDER, "GetUnitGroupBarSort", "GetUnitBarSort", "SetUnitGroupBarSort")
+define_aura_field_accessor("sortRule", ns.SORT_RULE_ORDER, "GetUnitGroupSortRule", "GetUnitSortRule", "SetUnitGroupSortRule")
+define_aura_field_accessor("filterMode", ns.FILTER_MODE_ORDER, "GetUnitGroupFilterMode", "GetUnitFilterMode", "SetUnitGroupFilterMode")
+
+local function apply_appearance_value(target, key, value, fallback)
 	if key == ns.DB_KEY.ICON_SIZE then
 		target.iconSize = math.floor(ns.Clamp(value, ns.LIMITS.ICON_SIZE_MIN, ns.LIMITS.ICON_SIZE_MAX, fallback.iconSize))
 	elseif key == ns.DB_KEY.SPACING then
 		target.spacing = math.floor(ns.Clamp(value, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, fallback.spacing))
-	elseif allowGlobalOnly and key == ns.DB_KEY.ROW_SPACING then
-		target.rowSpacing = math.floor(ns.Clamp(value, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, fallback.rowSpacing))
 	elseif key == ns.DB_KEY.MAX_AURAS then
 		target.maxAuras = math.floor(ns.Clamp(value, ns.LIMITS.MAX_AURAS_MIN, ns.LIMITS.MAX_AURAS_MAX, fallback.maxAuras))
+	elseif key == ns.DB_KEY.BAR_WIDTH then
+		target.barWidth = math.floor(ns.Clamp(value, ns.LIMITS.BAR_WIDTH_MIN, ns.LIMITS.BAR_WIDTH_MAX, fallback.barWidth))
 	elseif key == ns.DB_KEY.SCALE then
 		target.scale = ns.Clamp(value, ns.LIMITS.SCALE_MIN, ns.LIMITS.SCALE_MAX, fallback.scale)
 	elseif key == ns.DB_KEY.SHOW_COUNTDOWN then
@@ -208,6 +160,8 @@ local function apply_appearance_value(target, key, value, fallback, allowGlobalO
 		target.showSwipe = value == true
 	elseif key == ns.DB_KEY.SHOW_COUNTS then
 		target.showCounts = value == true
+	elseif key == ns.DB_KEY.SHOW_ICON then
+		target.showIcon = value == true
 	else
 		return false
 	end
@@ -239,17 +193,13 @@ local function copy_unit_group_options(source, target)
 	return target
 end
 
-function ns.SetAppearanceValue(key, value)
-	return apply_appearance_value(ns.GetAppearance(), key, value, ns.DEFAULTS.appearance, true)
-end
-
 function ns.SetUnitGroupAppearanceValue(groupKey, auraType, key, value)
 	local block = ensure_unit_aura_block(groupKey, auraType)
 	if not block then
 		return false
 	end
 	local fallback = ns.DEFAULTS.units[groupKey].aura[auraType]
-	return apply_appearance_value(block, key, value, fallback, false)
+	return apply_appearance_value(block, key, value, fallback)
 end
 
 function ns.SetUnitGroupAuraEnabled(groupKey, auraType, enabled)
