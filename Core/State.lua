@@ -2,6 +2,13 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 local appearanceCache = {}
+-- "\0" cannot appear in a group key or aura type, so it makes an unambiguous
+-- composite cache key.
+local CACHE_KEY_SEPARATOR = "\0"
+-- Saved unit-option field names with copy semantics of their own (see
+-- copy_unit_group_options below).
+local AURA_FIELD = "aura"
+local KNOWN_AURAS_FIELD = "knownAuras"
 
 function ns.DB()
 	return SimpleBuffsDB or ns.InitDB()
@@ -9,6 +16,20 @@ end
 
 function ns.GetAppearance()
 	return ns.DB().appearance
+end
+
+-- Whether to hide Blizzard's own default player buff bar (BuffFrame /
+-- TemporaryEnchantFrame). Orthogonal to the per-unit-group display settings
+-- above (it toggles Blizzard's own UI, not one of our own aura displays), so
+-- it lives in its own small top-level DB section instead of the shared
+-- per-unit-group options schema.
+function ns.IsBlizzardPlayerBuffsHidden()
+	return ns.DB().blizzardFrames.hidePlayerBuffs == true
+end
+
+function ns.SetBlizzardPlayerBuffsHidden(hidden)
+	ns.DB().blizzardFrames.hidePlayerBuffs = hidden == true
+	return true
 end
 
 local function ensure_unit_aura_block(groupKey, auraType)
@@ -27,12 +48,12 @@ function ns.GetUnitGroupAppearance(groupKey, auraType)
 	local options = ns.GetUnitGroupOptions(groupKey)
 	local defaultsUnit = ns.DEFAULTS.units[groupKey]
 	local fallback = defaultsUnit.aura and defaultsUnit.aura[auraType] or ns.DEFAULTS.appearance
-	local cacheKey = groupKey .. "\0" .. auraType
+	local cacheKey = groupKey .. CACHE_KEY_SEPARATOR .. auraType
 	local appearance = appearanceCache[cacheKey] or {}
 	appearanceCache[cacheKey] = appearance
 
 	local block = options and options.aura and options.aura[auraType]
-	block = type(block) == "table" and block or {}
+	block = type(block) == ns.LUA_TYPE.TABLE and block or {}
 
 	appearance.iconSize = block.iconSize or fallback.iconSize
 	appearance.spacing = block.spacing or fallback.spacing
@@ -45,6 +66,7 @@ function ns.GetUnitGroupAppearance(groupKey, auraType)
 	appearance.showIcon = block.showIcon ~= false
 	appearance.style = block.style or fallback.style
 	appearance.barWidth = block.barWidth or fallback.barWidth
+	appearance.barAnchor = block.barAnchor or fallback.barAnchor
 	return appearance
 end
 
@@ -140,6 +162,7 @@ end
 define_aura_field_accessor("layout", ns.LAYOUT_ORDER, "GetUnitGroupLayout", "GetUnitLayout", "SetUnitGroupLayout")
 define_aura_field_accessor("style", ns.AURA_STYLE_ORDER, "GetUnitGroupStyle", "GetUnitStyle", "SetUnitGroupStyle")
 define_aura_field_accessor("barSort", ns.BAR_SORT_ORDER, "GetUnitGroupBarSort", "GetUnitBarSort", "SetUnitGroupBarSort")
+define_aura_field_accessor("barAnchor", ns.BAR_ANCHOR_ORDER, "GetUnitGroupBarAnchor", "GetUnitBarAnchor", "SetUnitGroupBarAnchor")
 define_aura_field_accessor("sortRule", ns.SORT_RULE_ORDER, "GetUnitGroupSortRule", "GetUnitSortRule", "SetUnitGroupSortRule")
 define_aura_field_accessor("filterMode", ns.FILTER_MODE_ORDER, "GetUnitGroupFilterMode", "GetUnitFilterMode", "SetUnitGroupFilterMode")
 
@@ -168,154 +191,6 @@ local function apply_appearance_value(target, key, value, fallback)
 	return true
 end
 
-function ns.GetUnitGroupKnownAuras(groupKey)
-	local options = ns.GetUnitGroupOptions(groupKey)
-	if not options or type(options.knownAuras) ~= ns.LUA_TYPE.TABLE then
-		return {}
-	end
-	return options.knownAuras
-end
-
-function ns.RegisterDiscoveredAura(groupKey, auraType, spellId, name)
-	local options = ns.GetUnitGroupOptions(groupKey)
-	if not options or not ns.AURA_FILTER[auraType] or not spellId or type(name) ~= ns.LUA_TYPE.STRING or name == ns.TEXT.EMPTY then
-		return false
-	end
-	options.knownAuras = type(options.knownAuras) == ns.LUA_TYPE.TABLE and options.knownAuras or {}
-	local key = tostring(spellId)
-	local entry = options.knownAuras[key]
-	local now = time()
-	if entry then
-		entry.name = name
-		entry.lastSeenAt = now
-		return false
-	end
-	options.knownAuras[key] = {
-		name = name,
-		auraType = auraType,
-		hidden = false,
-		firstSeenAt = now,
-		lastSeenAt = now,
-	}
-	return true
-end
-
-function ns.GetUnitGroupManageFilter(groupKey)
-	local options = ns.GetUnitGroupOptions(groupKey)
-	return (options and options.manageFilter) or ns.DEFAULTS.units[groupKey].manageFilter
-end
-
-function ns.SetUnitGroupManageFilter(groupKey, filter)
-	if not ns.GetUnitGroupOptions(groupKey) or not ns.IsKnownValue(ns.MANAGE_FILTER_ORDER, filter) then
-		return false
-	end
-	ns.DB().units[groupKey].manageFilter = filter
-	return true
-end
-
-function ns.GetUnitGroupManageSort(groupKey)
-	local options = ns.GetUnitGroupOptions(groupKey)
-	return (options and options.manageSort) or ns.DEFAULTS.units[groupKey].manageSort
-end
-
-function ns.SetUnitGroupManageSort(groupKey, sortMode)
-	if not ns.GetUnitGroupOptions(groupKey) or not ns.IsKnownValue(ns.MANAGE_SORT_ORDER, sortMode) then
-		return false
-	end
-	ns.DB().units[groupKey].manageSort = sortMode
-	return true
-end
-
-function ns.IsAuraHidden(groupKey, spellId)
-	local entry = ns.GetUnitGroupKnownAuras(groupKey)[tostring(spellId)]
-	return entry ~= nil and entry.hidden == true
-end
-
-function ns.SetAuraHidden(groupKey, spellId, hidden)
-	local entry = ns.GetUnitGroupKnownAuras(groupKey)[tostring(spellId)]
-	if not entry then
-		return false
-	end
-	entry.hidden = hidden == true
-	return true
-end
-
-function ns.ForgetAura(groupKey, spellId)
-	local knownAuras = ns.GetUnitGroupKnownAuras(groupKey)
-	local key = tostring(spellId)
-	if not knownAuras[key] then
-		return false
-	end
-	knownAuras[key] = nil
-	return true
-end
-
-local MANAGE_SORT_TIMESTAMP_FIELD = {
-	[ns.MANAGE_SORT.FIRST_SEEN_ASC] = { field = "firstSeenAt", ascending = true },
-	[ns.MANAGE_SORT.FIRST_SEEN_DESC] = { field = "firstSeenAt", ascending = false },
-	[ns.MANAGE_SORT.LAST_SEEN_ASC] = { field = "lastSeenAt", ascending = true },
-	[ns.MANAGE_SORT.LAST_SEEN_DESC] = { field = "lastSeenAt", ascending = false },
-}
-
-local function compare_alpha(left, right, ascending)
-	local leftName, rightName = left.name:lower(), right.name:lower()
-	if leftName == rightName then
-		if ascending then
-			return left.spellId < right.spellId
-		end
-		return left.spellId > right.spellId
-	end
-	if ascending then
-		return leftName < rightName
-	end
-	return leftName > rightName
-end
-
-local function manage_sort_comparator(sortMode)
-	if sortMode == ns.MANAGE_SORT.ALPHA_DESC then
-		return function(left, right)
-			return compare_alpha(left, right, false)
-		end
-	end
-	local timestamp = MANAGE_SORT_TIMESTAMP_FIELD[sortMode]
-	if timestamp then
-		return function(left, right)
-			local leftValue, rightValue = left[timestamp.field], right[timestamp.field]
-			if leftValue == rightValue then
-				return left.spellId < right.spellId
-			end
-			if timestamp.ascending then
-				return leftValue < rightValue
-			end
-			return leftValue > rightValue
-		end
-	end
-	return function(left, right)
-		return compare_alpha(left, right, true)
-	end
-end
-
-function ns.GetSortedKnownAuraEntries(groupKey, filter, sortMode)
-	filter = ns.IsKnownValue(ns.MANAGE_FILTER_ORDER, filter) and filter or ns.MANAGE_FILTER.BOTH
-	sortMode = ns.IsKnownValue(ns.MANAGE_SORT_ORDER, sortMode) and sortMode or ns.MANAGE_SORT.ALPHA_ASC
-	local knownAuras = ns.GetUnitGroupKnownAuras(groupKey)
-	local entries = {}
-	for spellIdKey, entry in pairs(knownAuras) do
-		if filter == ns.MANAGE_FILTER.BOTH or entry.auraType == filter then
-			entries[#entries + 1] = {
-				spellId = spellIdKey,
-				name = entry.name,
-				auraType = entry.auraType,
-				hidden = entry.hidden == true,
-				firstSeenAt = entry.firstSeenAt or 0,
-				lastSeenAt = entry.lastSeenAt or 0,
-			}
-		end
-	end
-	table.sort(entries, manage_sort_comparator(sortMode))
-	return entries
-end
-
 local function copy_aura_table(sourceAura)
 	local out = {}
 	for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
@@ -335,9 +210,9 @@ local function copy_unit_group_options(source, target)
 		target[key] = nil
 	end
 	for key, value in pairs(source or {}) do
-		if key == "aura" and type(value) == "table" then
+		if key == AURA_FIELD and type(value) == ns.LUA_TYPE.TABLE then
 			target[key] = copy_aura_table(value)
-		elseif key ~= "knownAuras" then
+		elseif key ~= KNOWN_AURAS_FIELD then
 			target[key] = value
 		end
 	end

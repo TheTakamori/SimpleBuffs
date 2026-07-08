@@ -277,6 +277,17 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 		end
 	end
 
+	-- Simulate is a Runtime-only preview toggle (Core/Runtime.lua), not a
+	-- persisted appearance setting, so it's wired up directly here rather
+	-- than through OPTIONS_STYLE_CHECKS/SetUnitGroupAppearanceValue. Fixed
+	-- position near the bottom, like Copy From, instead of trailing the
+	-- settings flow above.
+	register_tab_child(settingsSection, ns.CreateOptionsCheck(settingsSection, ns.TEXT.OPTIONS_SIMULATE, ns.OPTIONS_LAYOUT.TAB_SIMULATE_Y, function()
+		return ns.IsSimulateEnabled(groupKey, resolveAuraType())
+	end, function(value)
+		ns.SetSimulateEnabled(groupKey, resolveAuraType(), value)
+	end, ns.NUMBER.ZERO, nil, ns.TEXT.OPTIONS_TOOLTIP_SIMULATE))
+
 	settingsSection.RefreshFromDB = function(self)
 		self:SetShown(resolveSubTab() ~= ns.GROUP_SUBTAB.MANAGE)
 		for _, child in ipairs(self.children or {}) do
@@ -289,6 +300,22 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 
 	local manageSection = ns.CreateOptionsManageTab(tab, groupKey, panelState)
 	register_tab_child(tab, manageSection)
+
+	-- Player-only: hiding Blizzard's own buff bar isn't a per-aura-type
+	-- setting and isn't specific to the Buffs/Debuffs/Manage sub-tab, so it's
+	-- attached directly to the outer tab (always visible) rather than to
+	-- settingsSection, sharing Simulate's row since the two are unrelated
+	-- but both compact single checkboxes.
+	if groupKey == ns.UNIT_GROUP.PLAYER then
+		register_tab_child(tab, ns.CreateOptionsCheck(tab, ns.TEXT.OPTIONS_HIDE_BLIZZARD_PLAYER_BUFFS, ns.OPTIONS_LAYOUT.TAB_SIMULATE_Y, function()
+			return ns.IsBlizzardPlayerBuffsHidden()
+		end, function(value)
+			ns.SetBlizzardPlayerBuffsHidden(value)
+			if ns.RefreshBlizzardPlayerBuffsVisibility then
+				ns.RefreshBlizzardPlayerBuffsVisibility()
+			end
+		end, ns.OPTIONS_LAYOUT.TAB_CHECK_SECOND_COLUMN_X, false, ns.TEXT.OPTIONS_TOOLTIP_HIDE_BLIZZARD_PLAYER_BUFFS))
+	end
 
 	create_copy_from_row(tab, groupKey, panelState, ns.OPTIONS_LAYOUT.TAB_COPY_FROM_Y)
 

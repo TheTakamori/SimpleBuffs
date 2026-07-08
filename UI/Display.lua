@@ -78,7 +78,7 @@ local function place_attached_below(frame, previousFrame)
 	return true
 end
 
-local function place_frame(frame, unit, mode, auraType, previousAttachedFrame)
+local function place_frame(frame, unit, mode, previousAttachedFrame)
 	frame:ClearAllPoints()
 	if mode == MODE_ATTACHED then
 		local previousSameUnit = previousAttachedFrame
@@ -109,19 +109,23 @@ local function create_display(unit, mode, auraType)
 	return frame
 end
 
-local function get_container_key_for_unit(unit)
-	return ns.GetStandaloneContainerKey(ns.GetUnitGroup(unit))
-end
-
-local function get_or_create_container(containerKey)
+-- Buffs and Debuffs each get their own standalone container (independently
+-- movable), identified by ns.GetStandaloneContainerInstanceKey. baseKey
+-- (ns.GetStandaloneContainerKey) still identifies the underlying group of
+-- units the container draws from - that grouping is unchanged, only the
+-- Buffs/Debuffs split is new.
+local function get_or_create_container(baseKey, auraType)
 	local runtime = ns.RuntimeEnsure()
+	local containerKey = baseKey .. ns.STANDALONE_CONTAINER_KEY_SEPARATOR .. auraType
 	if runtime.containers[containerKey] then
 		return runtime.containers[containerKey]
 	end
 
-	local frame = CreateFrame(ns.UI.FRAME, ns.FRAME_NAME.DISPLAY_PREFIX .. containerKey:gsub(ns.PATTERN.FIRST_LOWERCASE, string.upper) .. ns.FRAME_NAME.CONTAINER_SUFFIX, UIParent)
+	local label = baseKey:gsub(ns.PATTERN.FIRST_LOWERCASE, string.upper) .. auraType:gsub(ns.PATTERN.FIRST_LOWERCASE, string.upper)
+	local frame = CreateFrame(ns.UI.FRAME, ns.FRAME_NAME.DISPLAY_PREFIX .. label .. ns.FRAME_NAME.CONTAINER_SUFFIX, UIParent)
 	frame.containerKey = containerKey
-	frame.unit = containerKey
+	frame.baseContainerKey = baseKey
+	frame.auraType = auraType
 	frame:SetSize(ns.DISPLAY_FRAME.CONTAINER_WIDTH, ns.DISPLAY_FRAME.CONTAINER_HEIGHT)
 	frame:SetFrameStrata(ns.UI.FRAME_STRATA_MEDIUM)
 	ns.ApplyStandaloneDrag(frame)
@@ -134,6 +138,30 @@ local function place_container(frame)
 	local saved = ns.DB().standalone[frame.containerKey] or ns.STANDALONE_DEFAULTS[frame.containerKey]
 	frame:SetParent(UIParent)
 	frame:SetPoint(saved.point, UIParent, saved.relativePoint, saved.x, saved.y)
+end
+
+-- Re-anchors a container that's already on screen (via place_container) so
+-- the given edge - not the saved drag point - stays fixed as its content
+-- grows/shrinks: Bar Anchor Top pins the BOTTOM edge (bars push the top
+-- upward), Bar Anchor Bottom pins the TOP edge (bars push the bottom
+-- downward). This must be computed from the container's CURRENT on-screen
+-- rect rather than reusing the saved drag x/y, because those coordinates
+-- were captured under a different anchor point (whatever corner the user
+-- last dragged, or the CENTER default) and reusing them verbatim under a
+-- different point moves the frame to an unrelated screen position - this
+-- was the cause of a prior regression where standalone displays ended up
+-- stuck off-screen.
+local function pin_container_edge(frame, edge)
+	local left = frame:GetLeft()
+	local edgeY = edge == ns.UI.ANCHOR_BOTTOM and frame:GetBottom() or frame:GetTop()
+	if not left or not edgeY then
+		return
+	end
+	local point = edge == ns.UI.ANCHOR_BOTTOM and ns.UI.ANCHOR_BOTTOMLEFT or ns.UI.ANCHOR_TOPLEFT
+	local uiLeft = UIParent:GetLeft() or ns.NUMBER.ZERO
+	local uiEdgeY = (edge == ns.UI.ANCHOR_BOTTOM and UIParent:GetBottom() or UIParent:GetTop()) or ns.NUMBER.ZERO
+	frame:ClearAllPoints()
+	frame:SetPoint(point, UIParent, point, left - uiLeft, edgeY - uiEdgeY)
 end
 
 local function ensure_display(unit, mode, auraType)
@@ -194,6 +222,8 @@ function ns.UpdateUnitDisplays(unit, forceRefresh)
 			local previousAttachedFrame = nil
 			for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
 				if not ns.IsUnitAuraEnabled(unit, auraType) then
+					-- Re-read the unit's frame table: ensure_display may have
+					-- created it for an earlier aura type this same pass.
 					local framesForUnit = runtime.frames[mode] and runtime.frames[mode][unit]
 					local hiddenFrame = framesForUnit and framesForUnit[auraType]
 					if hiddenFrame then
@@ -202,9 +232,9 @@ function ns.UpdateUnitDisplays(unit, forceRefresh)
 				else
 					local frame = ensure_display(unit, mode, auraType)
 					if mode == MODE_STANDALONE then
-						frame:SetParent(get_or_create_container(get_container_key_for_unit(unit)))
+						frame:SetParent(get_or_create_container(ns.GetStandaloneContainerKey(ns.GetUnitGroup(unit)), auraType))
 					end
-					if place_frame(frame, unit, mode, auraType, previousAttachedFrame) then
+					if place_frame(frame, unit, mode, previousAttachedFrame) then
 						ns.UpdateAuraDisplayFrame(frame, model)
 						frame:Show()
 						if mode == MODE_ATTACHED then
@@ -263,40 +293,70 @@ function ns.LayoutStandaloneContainers()
 	local runtime = ns.RuntimeEnsure()
 	local globalAppearance = ns.GetAppearance()
 
-	for containerKey, container in pairs(runtime.containers) do
-		place_container(container)
+	for _, container in pairs(runtime.containers) do
+		if not container.pinnedEdge then
+			place_container(container)
+		end
 		container:EnableMouse(not ns.DB().locked)
 
 		local y = ns.LAYOUT_METRIC.ORIGIN_Y
 		local maxWidth = ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
 		local totalHeight = ns.LAYOUT_METRIC.ORIGIN_Y
 		local visibleCount = ns.NUMBER.ZERO
-		ns.ForEachUnitInStandaloneContainer(containerKey, function(unit)
-			local unitHadVisible = false
+		-- A container can only keep one edge fixed on screen as it resizes
+		-- (see pin_container_edge). Bar Anchor Top pins the bottom edge
+		-- (bars grow upward); Bar Anchor Bottom pins the top edge (bars
+		-- grow downward) - only applied when every visible frame in this
+		-- container agrees on style and anchor, since mixed content (e.g.
+		-- Icon style, which has no Bar Anchor of its own) has no single
+		-- edge that makes sense to pin, and falls back to the saved/dragged
+		-- point instead.
+		local allBarStyle = true
+		local commonBarAnchor = nil
+		local barAnchorConsistent = true
+		local auraType = container.auraType
+		ns.ForEachUnitInStandaloneContainer(container.baseContainerKey, function(unit)
 			local unitFrames = runtime.frames[MODE_STANDALONE] and runtime.frames[MODE_STANDALONE][unit]
-			for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
-				local frame = unitFrames and unitFrames[auraType]
-				if frame and frame:IsShown() then
-					frame:ClearAllPoints()
-					frame:SetPoint(ns.UI.ANCHOR_TOPLEFT, container, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
-					local width = frame:GetWidth() or ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
-					local height = frame:GetHeight()
-						or ns.GetUnitGroupAppearance(ns.GetUnitGroup(unit) or unit, auraType).iconSize
-					if width > maxWidth then
-						maxWidth = width
-					end
-					y = y - height - globalAppearance.rowSpacing
-					totalHeight = totalHeight + height + globalAppearance.rowSpacing
-					unitHadVisible = true
+			local frame = unitFrames and unitFrames[auraType]
+			if frame and frame:IsShown() then
+				local appearance = ns.GetUnitGroupAppearance(ns.GetUnitGroup(unit) or unit, auraType)
+				frame:ClearAllPoints()
+				frame:SetPoint(ns.UI.ANCHOR_TOPLEFT, container, ns.UI.ANCHOR_TOPLEFT, ns.LAYOUT_METRIC.ORIGIN_X, y)
+				local width = frame:GetWidth() or ns.DISPLAY_FRAME.INITIAL_MAX_WIDTH
+				local height = frame:GetHeight() or appearance.iconSize
+				if width > maxWidth then
+					maxWidth = width
 				end
-			end
-			if unitHadVisible then
+				y = y - height - globalAppearance.rowSpacing
+				totalHeight = totalHeight + height + globalAppearance.rowSpacing
 				visibleCount = visibleCount + ns.NUMBER.ONE
+				if appearance.style ~= ns.AURA_STYLE.BAR then
+					allBarStyle = false
+				elseif commonBarAnchor == nil then
+					commonBarAnchor = appearance.barAnchor
+				elseif commonBarAnchor ~= appearance.barAnchor then
+					barAnchorConsistent = false
+				end
 			end
 		end)
 
 		container:SetSize(math.max(maxWidth, ns.DISPLAY_FRAME.MIN_WIDTH), math.max(totalHeight, ns.DEFAULTS.appearance.iconSize))
 		container:SetShown(visibleCount > ns.NUMBER.ZERO)
+
+		local desiredEdge = nil
+		if visibleCount > ns.NUMBER.ZERO and allBarStyle and barAnchorConsistent and commonBarAnchor then
+			desiredEdge = commonBarAnchor == ns.BAR_ANCHOR.TOP and ns.UI.ANCHOR_BOTTOM or ns.UI.ANCHOR_TOP
+		end
+
+		if desiredEdge then
+			if container.pinnedEdge ~= desiredEdge then
+				pin_container_edge(container, desiredEdge)
+				container.pinnedEdge = desiredEdge
+			end
+		elseif container.pinnedEdge then
+			container.pinnedEdge = nil
+			place_container(container)
+		end
 	end
 end
 

@@ -2,7 +2,7 @@
 ## Title: Simple Buffs
 ## Notes: Shows configurable buff and debuff timers for all supported unit frames with /sbuff.
 ## Author: Takamori
-## Version: 1.5.0
+## Version: 1.6.0
 ## IconTexture: Interface\AddOns\SimpleBuffs\Media\Icons\simplebuffs-64.png
 ## SavedVariables: SimpleBuffsDB
 
@@ -15,6 +15,7 @@ Core/Defaults.lua
 Core/Runtime.lua
 Core/StateMigration.lua
 Core/State.lua
+Core/KnownAuras.lua
 Core/PositionState.lua
 Core/Units.lua
 Core/Scanner.lua
@@ -33,4 +34,5 @@ UI/OptionsManageTab.lua
 UI/OptionsGroupTab.lua
 UI/OptionsPanel.lua
 UI/SlashCommands.lua
+UI/BlizzardBuffFrame.lua
 Core/Bootstrap.lua

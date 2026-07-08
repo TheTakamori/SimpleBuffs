@@ -20,10 +20,9 @@ end
 
 function ns.RegisterSlashCommands()
 	SLASH_SIMPLEBUFFS1 = ns.SLASH_COMMANDS[1]
-	SLASH_SIMPLEBUFFS2 = nil
 	SlashCmdList.SIMPLEBUFFS = function(msg)
-		local command = (msg or ""):match("^%s*(%S*)")
-		command = command and command:lower() or ""
+		local command = (msg or ns.TEXT.EMPTY):match(ns.PATTERN.FIRST_WORD)
+		command = command and command:lower() or ns.TEXT.EMPTY
 
 		if command == ns.TEXT.EMPTY or command == ns.SLASH_COMMAND.OPTIONS or command == ns.SLASH_COMMAND.CONFIG then
 			ns.OpenOptionsPanel()
@@ -39,9 +38,8 @@ function ns.RegisterSlashCommands()
 			ns.ResetDB()
 			refresh()
 			ns.PrintMessage(ns.TEXT.RESET)
-		elseif command == ns.SLASH_COMMAND.HELP then
-			show_help()
 		else
+			-- Covers ns.SLASH_COMMAND.HELP and any unrecognized input.
 			show_help()
 		end
 	end

@@ -96,7 +96,7 @@ return function(runner, ns)
 		assert.equal(row.buttons.b.y, 24)
 	end)
 
-	runner:test("UpdateAuraDisplayRow stacks bar style vertically at barWidth regardless of layout", function()
+	runner:test("UpdateAuraDisplayRow stacks bar style vertically at barWidth regardless of layout or Bar Anchor", function()
 		created = 0
 		local row = make_row()
 
@@ -105,6 +105,7 @@ return function(runner, ns)
 			spacing = 4,
 			style = ns.AURA_STYLE.BAR,
 			barWidth = 150,
+			barAnchor = ns.BAR_ANCHOR.TOP,
 		}, ns.LAYOUT.HORIZONTAL)
 
 		assert.equal(row.width, 150)

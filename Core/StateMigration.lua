@@ -37,6 +37,38 @@ local function clamp(value, minValue, maxValue, fallback)
 	return numeric
 end
 
+-- Buffs and Debuffs used to share one standalone container per group,
+-- keyed by these base names. Splitting them into independently-movable
+-- containers (Core/UnitRegistry.lua's per-aura-type STANDALONE_DEFAULTS)
+-- means old saved positions under the bare base key would otherwise be
+-- orphaned; carry that position forward onto both new per-aura-type keys
+-- (as a shared starting point the user can drag apart) instead of resetting
+-- everyone to the hardcoded default.
+local LEGACY_STANDALONE_BASE_KEYS = {
+	"player", "target", "focus", "pet", "party", "partyPets", "raid", "raidPets", "enemy",
+}
+
+local function migrate_legacy_standalone_positions(db)
+	for index = 1, #LEGACY_STANDALONE_BASE_KEYS do
+		local baseKey = LEGACY_STANDALONE_BASE_KEYS[index]
+		local legacy = db.standalone[baseKey]
+		if type(legacy) == ns.LUA_TYPE.TABLE and type(legacy.point) == ns.LUA_TYPE.STRING then
+			for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+				local instanceKey = baseKey .. ns.STANDALONE_CONTAINER_KEY_SEPARATOR .. auraType
+				if db.standalone[instanceKey] == nil then
+					db.standalone[instanceKey] = {
+						point = legacy.point,
+						relativePoint = legacy.relativePoint,
+						x = legacy.x,
+						y = legacy.y,
+					}
+				end
+			end
+		end
+		db.standalone[baseKey] = nil
+	end
+end
+
 local function sanitize_position(saved, fallback)
 	saved.point = type(saved.point) == ns.LUA_TYPE.STRING and saved.point or fallback.point
 	saved.relativePoint = type(saved.relativePoint) == ns.LUA_TYPE.STRING and saved.relativePoint or fallback.relativePoint
@@ -89,6 +121,7 @@ local LEGACY_UNIT_AURA_KEYS = {
 	"style",
 	"barWidth",
 	"barSort",
+	"barAnchor",
 }
 
 local function absorb_legacy_flat_into_aura(unitOptions)
@@ -149,6 +182,7 @@ local function sanitize_aura_options(groupKey, auraType, auraOpts, rawUnitOption
 	auraOpts.style = migration_or_default(ns.AURA_STYLE_ORDER, auraOpts.style, migrations.style, defaultsAura.style, raw_first("style"))
 	auraOpts.barWidth = migrated_number(auraOpts.barWidth, migrations.barWidth, ns.LIMITS.BAR_WIDTH_MIN, ns.LIMITS.BAR_WIDTH_MAX, defaultsAura.barWidth, raw_first("barWidth"), true)
 	auraOpts.barSort = migration_or_default(ns.BAR_SORT_ORDER, auraOpts.barSort, migrations.barSort, defaultsAura.barSort, raw_first("barSort"))
+	auraOpts.barAnchor = migration_or_default(ns.BAR_ANCHOR_ORDER, auraOpts.barAnchor, migrations.barAnchor, defaultsAura.barAnchor, raw_first("barAnchor"))
 end
 
 local function sanitize_unit_options(groupKey, unitOptions, migrations)
@@ -214,6 +248,8 @@ local function sanitize_db(db, migrations)
 	db.minimap = type(db.minimap) == ns.LUA_TYPE.TABLE and db.minimap or {}
 	db.minimap.angle = clamp(db.minimap.angle, ns.NUMBER.ZERO, ns.MINIMAP_MATH.FULL_CIRCLE_DEGREES, ns.DEFAULTS.minimap.angle)
 	db.minimap.hide = db.minimap.hide == true
+	db.blizzardFrames = type(db.blizzardFrames) == ns.LUA_TYPE.TABLE and db.blizzardFrames or {}
+	db.blizzardFrames.hidePlayerBuffs = db.blizzardFrames.hidePlayerBuffs == true
 	db.displayMode = nil
 	db.locked = db.locked == true
 
@@ -233,6 +269,7 @@ local function sanitize_db(db, migrations)
 	appearance.style = nil
 	appearance.barWidth = nil
 	appearance.barSort = nil
+	appearance.barAnchor = nil
 	appearance.rowSpacing = clamp(appearance.rowSpacing, ns.LIMITS.SPACING_MIN, ns.LIMITS.SPACING_MAX, ns.DEFAULTS.appearance.rowSpacing)
 
 	for _, groupKey in ipairs(ns.UNIT_GROUP_ORDER) do
@@ -278,6 +315,7 @@ local function capture_raw_unit_options(units)
 							style = block.style,
 							barWidth = block.barWidth,
 							barSort = block.barSort,
+							barAnchor = block.barAnchor,
 						}
 					end
 				end
@@ -299,6 +337,7 @@ local function capture_raw_unit_options(units)
 				style = options.style,
 				barWidth = options.barWidth,
 				barSort = options.barSort,
+				barAnchor = options.barAnchor,
 				aura = auraSnapshot,
 			}
 		end
@@ -315,6 +354,12 @@ end
 
 function ns.InitDB()
 	local existing = SimpleBuffsDB or {}
+	-- Must run before copy_table below, which back-fills every default
+	-- (including the new per-aura-type composite keys) onto existing.standalone
+	-- - by that point a nil-check can no longer tell a real legacy value
+	-- apart from an already-defaulted one.
+	existing.standalone = type(existing.standalone) == ns.LUA_TYPE.TABLE and existing.standalone or {}
+	migrate_legacy_standalone_positions(existing)
 	local previousVersion = tonumber(existing.version) or ns.NUMBER.ZERO
 	local migrateGlobalSettings = previousVersion < GLOBAL_SETTINGS_MIGRATION_VERSION
 	local existingAppearance = type(existing.appearance) == ns.LUA_TYPE.TABLE and existing.appearance or {}

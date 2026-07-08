@@ -134,9 +134,80 @@ local function scan_with_index(unit, auraType, filter, maxCount)
 	return results
 end
 
+-- Sample data for the Simulate preview: a small, deliberately varied set per
+-- aura type (long/short duration, near-full/near-expired, with and without
+-- stacks) so a unit tab's current Style/Layout/Sort/Filter settings can be
+-- previewed even when the unit currently has no real auras. "remaining" is
+-- seconds left; "duration" is the total/base duration those seconds are out
+-- of, so some samples render as a mostly-full bar and some as nearly spent.
+local SAMPLE_AURAS = {
+	[ns.AURA_TYPE.BUFF] = {
+		{ name = "Well Fed", icon = "Interface\\Icons\\INV_Misc_Food_15", duration = 3600, remaining = 3600 },
+		{ name = "Arcane Intellect", icon = "Interface\\Icons\\Spell_Holy_MagicalSentry", duration = 3600, remaining = 1800 },
+		{ name = "Renewing Mist", icon = "Interface\\Icons\\Spell_Monk_RenewingMist", duration = 12, remaining = 8, applications = 3 },
+		{ name = "Battle Shout", icon = "Interface\\Icons\\Ability_Warrior_BattleShout", duration = 30, remaining = 30 },
+		{ name = "Ice Barrier", icon = "Interface\\Icons\\Spell_Frost_ArcticWinds", duration = 60, remaining = 4 },
+		{ name = "Power Word: Fortitude", icon = "Interface\\Icons\\Spell_Holy_WordFortitude", duration = 3600, remaining = 3599 },
+	},
+	[ns.AURA_TYPE.DEBUFF] = {
+		{ name = "Curse of Weakness", icon = "Interface\\Icons\\Spell_Shadow_CurseOfMannoroth", duration = 120, remaining = 90 },
+		{ name = "Rend", icon = "Interface\\Icons\\Ability_Gouge", duration = 15, remaining = 9, applications = 3 },
+		{ name = "Chilled", icon = "Interface\\Icons\\Spell_Frost_FrostArmor02", duration = 5, remaining = 1 },
+		{ name = "Corruption", icon = "Interface\\Icons\\Spell_Shadow_AbominationExplosion", duration = 18, remaining = 18 },
+		{ name = "Polymorph", icon = "Interface\\Icons\\Spell_Nature_Polymorph", duration = 8, remaining = 6 },
+		{ name = "Weakened Soul", icon = "Interface\\Icons\\Spell_Holy_PainSupression", duration = 15, remaining = 15 },
+	},
+}
+
+local SAMPLE_SPELL_ID_BASE = 900000
+local ROUND_HALF = 0.5
+
+-- Ties the visible sample count to Core/Runtime.lua's Simulate phase, so the
+-- preview cycles through fewer/more sample auras over time instead of
+-- always showing every sample at once - this is what actually demonstrates
+-- container growth/shrink behavior (e.g. Bar Anchor Top/Bottom) to the user.
+local function simulated_sample_count(total)
+	local fractions = ns.SIMULATE.GROWTH_FRACTIONS
+	local phase = (ns.GetSimulatePhase and ns.GetSimulatePhase() or ns.NUMBER.ZERO) % #fractions
+	local count = math.floor(total * fractions[phase + ns.LAYOUT_METRIC.INDEX_OFFSET] + ROUND_HALF)
+	return math.max(ns.NUMBER.ONE, math.min(total, count))
+end
+
+local function build_sample_rows(unit, auraType)
+	local samples = SAMPLE_AURAS[auraType] or {}
+	local count = simulated_sample_count(#samples)
+	local now = GetTime and GetTime() or ns.NUMBER.ZERO
+	local results = {}
+	for index = 1, count do
+		local sample = samples[index]
+		local spellId = SAMPLE_SPELL_ID_BASE + index
+		results[index] = {
+			unit = unit,
+			auraType = auraType,
+			auraInstanceID = spellId,
+			applicationDisplayCount = sample.applications,
+			aura = {
+				name = sample.name,
+				icon = sample.icon,
+				duration = sample.duration,
+				expirationTime = now + sample.remaining,
+				timeMod = ns.AURA_BUTTON.FALLBACK_MOD_RATE,
+				applications = sample.applications or ns.NUMBER.ONE,
+				spellId = spellId,
+				isSimulated = true,
+			},
+		}
+	end
+	return results
+end
+
 function ns.ScanUnitAuraType(unit, auraType)
 	if not ns.IsUnitAuraEnabled(unit, auraType) or not unit_exists(unit) then
 		return {}
+	end
+
+	if ns.IsSimulateEnabled((ns.GetUnitGroup(unit) or unit), auraType) then
+		return build_sample_rows(unit, auraType)
 	end
 
 	local filter = build_filter(unit, auraType)

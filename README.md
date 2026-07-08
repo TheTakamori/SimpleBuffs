@@ -5,7 +5,7 @@ configurable displays. It is built for World of Warcraft Retail
 `12.0.5 (Midnight)` and uses Blizzard cooldown widgets for countdown text so
 the UI can display aura timers without custom combat-state calculations.
 
-Current version: `1.5.0`.
+Current version: `1.6.0`.
 
 ## Features
 
@@ -18,8 +18,13 @@ Current version: `1.5.0`.
   "Bar Stack" of labeled horizontal bars (icon + spell name + shrinking
   time-remaining fill + countdown), with its own Bar Width slider, a Show Icon
   toggle (on by default) to hide the leading icon and let the name fill the
-  bar, and a dedicated Bar Sort dropdown (A-Z, Z-A, Time Left, or Max
-  Duration, each ascending or descending).
+  bar, a dedicated Bar Sort dropdown (A-Z, Z-A, Time Left, or Max Duration,
+  each ascending or descending), and a Bar Anchor dropdown (Top or Bottom)
+  for standalone (movable) displays: Bottom (default) keeps the top of the
+  display fixed and grows downward as bars are added, Top keeps the bottom
+  fixed and grows upward instead. Bars are still ordered by Bar Sort either
+  way; only which edge stays put changes. Attached displays aren't affected
+  by this setting yet.
 - Adds a "Manage Auras" tab alongside Buffs/Debuffs on every unit tab, listing
   every buff/debuff ever seen on that unit with a checkbox to hide or show it
   (applies to both Icon and Bar Stack styles) and a Forget button to drop it
@@ -31,9 +36,26 @@ Current version: `1.5.0`.
   own Blizzard tooltip. A Show dropdown filters the list to Buffs, Debuffs, or
   Both, and a Sort dropdown orders it A-Z/Z-A or by when each aura was first
   or most recently seen (each ascending or descending).
+- Adds a Simulate toggle to each unit tab's Buffs and Debuffs sub-tabs, right
+  above Copy From. Turning it on shows several sample auras (varied
+  durations, stack counts, and icons) so the current Style/Layout/Sort/Filter
+  configuration can be previewed and tuned without needing real buffs or
+  debuffs active. The sample count cycles up and down every couple of
+  seconds while it's on, so you can watch the display actually grow and
+  shrink - handy for checking a Bar Anchor or Layout choice looks right.
+  Requires the unit to currently exist (e.g. a target/focus selected); it's a
+  preview-only toggle that is never saved and always resets off on reload, so
+  it can't accidentally leave fake auras showing later.
+- Adds a "Hide Blizzard Player Buffs" toggle on the Player unit tab that hides
+  Blizzard's own default player buff bar (and weapon enchant buffs) near the
+  minimap, so only Simple Buffs' own display shows. Saved per character and
+  applies immediately.
 - Includes hover explanations on option labels and controls.
 - Provides standalone grouped displays for users who prefer a custom placement.
-  Unlocked standalone displays move with Shift-drag.
+  Buffs and Debuffs are separate standalone displays per unit group, so they
+  can be dragged to different places on screen independently instead of
+  moving together as one group. Unlocked standalone displays move with
+  Shift-drag.
 - Provides per-aura-type icon size, spacing, max aura count, scale, countdown
   text, cooldown swipe, and enable/disable controls within each unit tab's
   Buffs and Debuffs sub-tabs.

@@ -2,9 +2,10 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 local UNKNOWN_KEY_PART = "unknown"
+local KEY_SEPARATOR = ":"
 
 local function build_key(unit, auraType, auraInstanceID, fallbackIndex)
-	return (unit or UNKNOWN_KEY_PART) .. ":" .. (auraType or UNKNOWN_KEY_PART) .. ":" .. tostring(auraInstanceID or fallbackIndex or UNKNOWN_KEY_PART)
+	return (unit or UNKNOWN_KEY_PART) .. KEY_SEPARATOR .. (auraType or UNKNOWN_KEY_PART) .. KEY_SEPARATOR .. tostring(auraInstanceID or fallbackIndex or UNKNOWN_KEY_PART)
 end
 
 local function reverse_rows(rows)
@@ -23,7 +24,7 @@ local function collect_durations(rows)
 		local ok, duration = pcall(function()
 			return rows[index].aura and rows[index].aura.duration
 		end)
-		if not ok or type(duration) ~= "number" then
+		if not ok or type(duration) ~= ns.LUA_TYPE.NUMBER then
 			return nil
 		end
 		durations[index] = duration
@@ -190,10 +191,6 @@ local function discover_auras(unit, groupKey)
 	end
 	prune_spell_id_cache(unit, activeInstanceIds)
 	return discoveredNew
-end
-
-function ns.BuildAuraKey(unit, auraType, auraInstanceID, fallbackIndex)
-	return build_key(unit, auraType, auraInstanceID, fallbackIndex)
 end
 
 function ns.RefreshUnitModel(unit)

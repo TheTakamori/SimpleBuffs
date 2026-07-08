@@ -16,10 +16,6 @@ local function aura(id)
 end
 
 return function(runner, ns)
-	runner:test("BuildAuraKey is stable", function()
-		assert.equal(ns.BuildAuraKey("focus", ns.AURA_TYPE.DEBUFF, 42), "focus:debuff:42")
-	end)
-
 	runner:test("RefreshUnitModel rebuilds stable aura rows", function()
 		_G.SimpleBuffsDB = nil
 		ns.Runtime = nil

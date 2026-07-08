@@ -27,27 +27,33 @@ return function(runner, ns)
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()
 
+		local containerKey = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF)
 		local frame = make_point_frame(ns.UI.ANCHOR_CENTER, ns.UI.ANCHOR_CENTER, 42, -7)
-		ns.SaveStandalonePosition(ns.UNIT_GROUP.PLAYER, frame)
+		ns.SaveStandalonePosition(containerKey, frame)
 
-		local saved = ns.DB().standalone[ns.UNIT_GROUP.PLAYER]
+		local saved = ns.DB().standalone[containerKey]
 		assert.equal(saved.point, ns.UI.ANCHOR_CENTER)
 		assert.equal(saved.relativePoint, ns.UI.ANCHOR_CENTER)
 		assert.equal(saved.x, 42)
 		assert.equal(saved.y, -7)
+
+		-- The Debuffs container for the same group is a separate entry.
+		local debuffKey = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.DEBUFF)
+		assert.equal(ns.DB().standalone[debuffKey].x ~= 42, true)
 	end)
 
 	runner:test("SaveStandalonePosition ignores unknown containers and missing points", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()
 
-		local before = ns.DB().standalone[ns.UNIT_GROUP.PLAYER].x
+		local containerKey = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF)
+		local before = ns.DB().standalone[containerKey].x
 
 		ns.SaveStandalonePosition("unknown-container", make_point_frame(ns.UI.ANCHOR_CENTER, ns.UI.ANCHOR_CENTER, 1, 1))
 		ns.SaveStandalonePosition(nil, make_point_frame(ns.UI.ANCHOR_CENTER, ns.UI.ANCHOR_CENTER, 1, 1))
-		ns.SaveStandalonePosition(ns.UNIT_GROUP.PLAYER, nil)
-		ns.SaveStandalonePosition(ns.UNIT_GROUP.PLAYER, make_point_frame(nil, nil, nil, nil))
+		ns.SaveStandalonePosition(containerKey, nil)
+		ns.SaveStandalonePosition(containerKey, make_point_frame(nil, nil, nil, nil))
 
-		assert.equal(ns.DB().standalone[ns.UNIT_GROUP.PLAYER].x, before)
+		assert.equal(ns.DB().standalone[containerKey].x, before)
 	end)
 end

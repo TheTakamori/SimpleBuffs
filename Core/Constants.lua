@@ -2,12 +2,28 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.ADDON_NAME = "SimpleBuffs"
-ns.VERSION = "1.5.0"
-ns.DB_VERSION = 9
+ns.VERSION = "1.6.0"
+ns.DB_VERSION = 12
 ns.SELECT_COUNT = "#"
+
+-- Joins a standalone container's base group key (e.g. "player", "enemy")
+-- with an aura type to form the per-aura-type container identity used for
+-- both runtime frame lookup and saved position storage, so Buffs and
+-- Debuffs can be dragged and positioned independently.
+ns.STANDALONE_CONTAINER_KEY_SEPARATOR = ":"
 
 ns.SLASH_COMMANDS = {
 	"/sbuff",
+}
+
+-- Growth/shrink cycle for the Simulate preview: while at least one unit
+-- group has Simulate enabled, a bounded ticker (Core/Runtime.lua) advances
+-- through this fraction sequence every TICK_INTERVAL_SECONDS, so the sample
+-- aura count rises and falls (demonstrating container growth/shrink, e.g.
+-- Bar Anchor Top/Bottom) instead of always showing a fixed count.
+ns.SIMULATE = {
+	TICK_INTERVAL_SECONDS = 2.5,
+	GROWTH_FRACTIONS = { 1 / 3, 2 / 3, 1, 2 / 3 },
 }
 
 ns.SLASH_COMMAND = {
@@ -124,6 +140,21 @@ ns.LAYOUT_LABEL = {
 	vertical = "Vertical",
 	["horizontal-reverse"] = "Horizontal Reverse",
 	["vertical-reverse"] = "Vertical Reverse",
+}
+
+ns.BAR_ANCHOR = {
+	TOP = "top",
+	BOTTOM = "bottom",
+}
+
+ns.BAR_ANCHOR_ORDER = {
+	ns.BAR_ANCHOR.TOP,
+	ns.BAR_ANCHOR.BOTTOM,
+}
+
+ns.BAR_ANCHOR_LABEL = {
+	top = "Top",
+	bottom = "Bottom",
 }
 
 ns.SORT_RULE = {

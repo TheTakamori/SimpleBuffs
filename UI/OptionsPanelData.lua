@@ -119,6 +119,28 @@ ns.OPTIONS_UNIT_DROPDOWN_COLUMNS = {
 		end,
 	},
 	{
+		-- Shares the Layout/Bar Sort row's secondary column with Sort below:
+		-- Sort only applies to the icon style and Bar Anchor only applies to
+		-- the bar style, so the two never show at once.
+		header = ns.TEXT.OPTIONS_BAR_ANCHOR,
+		perAura = true,
+		sameRowAsPrevious = true,
+		x = ns.OPTIONS_LAYOUT.TAB_SECONDARY_CONTROL_X,
+		values = ns.BAR_ANCHOR_ORDER,
+		get = function(groupKey, auraType)
+			return ns.GetUnitGroupBarAnchor(groupKey, auraType)
+		end,
+		set = function(groupKey, auraType, value)
+			ns.SetUnitGroupBarAnchor(groupKey, auraType, value)
+		end,
+		labels = ns.BAR_ANCHOR_LABEL,
+		tooltip = ns.TEXT.OPTIONS_TOOLTIP_BAR_ANCHOR,
+		refresh = ns.RepaintOptionsDisplays,
+		showWhen = function(groupKey, auraType)
+			return ns.GetUnitGroupStyle(groupKey, auraType) == ns.AURA_STYLE.BAR
+		end,
+	},
+	{
 		header = ns.TEXT.OPTIONS_SORT,
 		perAura = true,
 		sameRowAsPrevious = true,

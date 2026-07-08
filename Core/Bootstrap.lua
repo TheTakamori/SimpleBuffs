@@ -20,56 +20,41 @@ local function print_loaded()
 	ns.PrintMessage(ns.TEXT.LOADED)
 end
 
-local function refresh_unit(unit, skipLayout)
-	if ns.BeginAttachedAnchorCache then
-		ns.BeginAttachedAnchorCache()
-	end
+local function refresh_unit_callback(unit)
 	if ns.RefreshAndUpdateUnit then
 		ns.RefreshAndUpdateUnit(unit)
 	end
-	if ns.EndAttachedAnchorCache then
-		ns.EndAttachedAnchorCache()
-	end
-	if not skipLayout and ns.LayoutStandaloneContainers then
-		ns.LayoutStandaloneContainers()
-	end
 end
 
-local function refresh_group(groupKey)
+-- Shared begin/refresh/end/layout wrapper so every event handler batches
+-- anchor lookups and re-lays-out standalone containers exactly once.
+local function with_anchor_cache(refresh)
 	if ns.BeginAttachedAnchorCache then
 		ns.BeginAttachedAnchorCache()
 	end
-	ns.ForEachUnitInGroup(groupKey, function(unit)
-		if ns.RefreshAndUpdateUnit then
-			ns.RefreshAndUpdateUnit(unit)
-		end
-	end)
+	refresh()
 	if ns.EndAttachedAnchorCache then
 		ns.EndAttachedAnchorCache()
 	end
 	if ns.LayoutStandaloneContainers then
 		ns.LayoutStandaloneContainers()
 	end
+end
+
+local function refresh_unit(unit)
+	with_anchor_cache(function()
+		refresh_unit_callback(unit)
+	end)
 end
 
 local function refresh_groups(...)
-	if ns.BeginAttachedAnchorCache then
-		ns.BeginAttachedAnchorCache()
-	end
-	for index = 1, select(ns.SELECT_COUNT, ...) do
-		local groupKey = select(index, ...)
-		ns.ForEachUnitInGroup(groupKey, function(unit)
-			if ns.RefreshAndUpdateUnit then
-				ns.RefreshAndUpdateUnit(unit)
-			end
-		end)
-	end
-	if ns.EndAttachedAnchorCache then
-		ns.EndAttachedAnchorCache()
-	end
-	if ns.LayoutStandaloneContainers then
-		ns.LayoutStandaloneContainers()
-	end
+	local groupCount = select(ns.SELECT_COUNT, ...)
+	local groups = { ... }
+	with_anchor_cache(function()
+		for index = 1, groupCount do
+			ns.ForEachUnitInGroup(groups[index], refresh_unit_callback)
+		end
+	end)
 end
 
 local function process_dirty_refresh()
@@ -115,6 +100,9 @@ frame:SetScript(ns.UI.ON_EVENT, function(_, event, arg1)
 		if ns.EnsureDisplays then
 			ns.EnsureDisplays()
 		end
+		if ns.RefreshBlizzardPlayerBuffsVisibility then
+			ns.RefreshBlizzardPlayerBuffsVisibility()
+		end
 	elseif event == ns.EVENT.PLAYER_FOCUS_CHANGED then
 		refresh_unit(ns.UNIT_TOKEN.FOCUS)
 	elseif event == ns.EVENT.PLAYER_TARGET_CHANGED then
@@ -128,7 +116,7 @@ frame:SetScript(ns.UI.ON_EVENT, function(_, event, arg1)
 	elseif event == ns.EVENT.GROUP_ROSTER_UPDATE or event == ns.EVENT.RAID_ROSTER_UPDATE then
 		refresh_groups(ns.UNIT_GROUP.PARTY, ns.UNIT_GROUP.PARTY_PETS, ns.UNIT_GROUP.RAID, ns.UNIT_GROUP.RAID_PETS)
 	elseif event == ns.EVENT.INSTANCE_ENCOUNTER_ENGAGE_UNIT then
-		refresh_group(ns.UNIT_GROUP.BOSS)
+		refresh_groups(ns.UNIT_GROUP.BOSS)
 	elseif event == ns.EVENT.ARENA_OPPONENT_UPDATE then
 		refresh_groups(ns.UNIT_GROUP.ARENA, ns.UNIT_GROUP.ARENA_PETS)
 	elseif event == ns.EVENT.UNIT_AURA then

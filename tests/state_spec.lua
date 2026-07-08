@@ -4,6 +4,30 @@ local support = require("support")
 local assert = support.assert
 
 return function(runner, ns)
+	runner:test("InitDB migrates a legacy shared standalone position onto both new Buffs/Debuffs containers", function()
+		_G.SimpleBuffsDB = {
+			standalone = {
+				player = {
+					point = ns.UI.ANCHOR_CENTER,
+					relativePoint = ns.UI.ANCHOR_CENTER,
+					x = 250,
+					y = -60,
+				},
+			},
+		}
+
+		local db = ns.InitDB()
+
+		local buffKey = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF)
+		local debuffKey = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.DEBUFF)
+
+		assert.equal(db.standalone.player, nil)
+		assert.equal(db.standalone[buffKey].x, 250)
+		assert.equal(db.standalone[buffKey].y, -60)
+		assert.equal(db.standalone[debuffKey].x, 250)
+		assert.equal(db.standalone[debuffKey].y, -60)
+	end)
+
 	runner:test("InitDB fills defaults", function()
 		_G.SimpleBuffsDB = nil
 
@@ -28,6 +52,7 @@ return function(runner, ns)
 		assert.equal(db.units.player.aura.buff.style, ns.AURA_STYLE.ICON)
 		assert.equal(db.units.player.aura.buff.barWidth, ns.DEFAULTS.units.player.aura.buff.barWidth)
 		assert.equal(db.units.player.aura.buff.barSort, ns.BAR_SORT.ALPHA_ASC)
+		assert.equal(db.units.player.aura.buff.barAnchor, ns.BAR_ANCHOR.BOTTOM)
 		assert.equal(db.units.party.mode, ns.DISPLAY_MODE.ATTACHED)
 		assert.equal(db.units.party.attachedPosition, ns.ATTACHED_POSITION.RIGHT)
 		assert.equal(db.units.partyPets.attachedPosition, ns.ATTACHED_POSITION.RIGHT)
@@ -42,6 +67,7 @@ return function(runner, ns)
 		assert.equal(db.appearance.showTitles, nil)
 		assert.equal(db.minimap.angle, ns.DEFAULTS.minimap.angle)
 		assert.equal(db.minimap.hide, false)
+		assert.equal(db.blizzardFrames.hidePlayerBuffs, false)
 	end)
 
 	runner:test("InitDB sanitizes invalid values", function()
@@ -50,6 +76,9 @@ return function(runner, ns)
 			minimap = {
 				angle = 999,
 				hide = true,
+			},
+			blizzardFrames = {
+				hidePlayerBuffs = "yes",
 			},
 			appearance = {
 				iconSize = 999,
@@ -76,6 +105,7 @@ return function(runner, ns)
 					style = "grid",
 					barWidth = 5,
 					barSort = "random",
+					barAnchor = "sideways",
 				},
 				party = {},
 				raid = {
@@ -113,6 +143,7 @@ return function(runner, ns)
 		assert.equal(db.units.player.aura.buff.style, ns.DEFAULTS.units.player.aura.buff.style)
 		assert.equal(db.units.player.aura.buff.barWidth, ns.LIMITS.BAR_WIDTH_MIN)
 		assert.equal(db.units.player.aura.buff.barSort, ns.DEFAULTS.units.player.aura.buff.barSort)
+		assert.equal(db.units.player.aura.buff.barAnchor, ns.DEFAULTS.units.player.aura.buff.barAnchor)
 		assert.equal(db.version, ns.DB_VERSION)
 		assert.equal(db.units.party.buff, true)
 		assert.equal(db.units.raid.mode, ns.DISPLAY_MODE.BOTH)
@@ -121,6 +152,19 @@ return function(runner, ns)
 		assert.equal(db.appearance.filterMode, nil)
 		assert.equal(db.minimap.angle, 360)
 		assert.equal(db.minimap.hide, true)
+		assert.equal(db.blizzardFrames.hidePlayerBuffs, false)
+	end)
+
+	runner:test("blizzard player buffs hidden state toggles and persists", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		assert.equal(ns.IsBlizzardPlayerBuffsHidden(), false)
+		assert.equal(ns.SetBlizzardPlayerBuffsHidden(true), true)
+		assert.equal(ns.IsBlizzardPlayerBuffsHidden(), true)
+		assert.equal(ns.DB().blizzardFrames.hidePlayerBuffs, true)
+		assert.equal(ns.SetBlizzardPlayerBuffsHidden(false), true)
+		assert.equal(ns.IsBlizzardPlayerBuffsHidden(), false)
 	end)
 
 	runner:test("lock state toggles and persists", function()
@@ -648,6 +692,12 @@ return function(runner, ns)
 		assert.equal(ns.GetUnitGroupBarSort(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.BAR_SORT.MAX_DURATION_DESC)
 		assert.equal(ns.SetUnitGroupBarSort(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, "random"), false)
 		assert.equal(ns.GetUnitBarSort("pet", ns.AURA_TYPE.BUFF), ns.BAR_SORT.MAX_DURATION_DESC)
+
+		assert.equal(ns.GetUnitGroupBarAnchor(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.BAR_ANCHOR.BOTTOM)
+		assert.equal(ns.SetUnitGroupBarAnchor(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, ns.BAR_ANCHOR.TOP), true)
+		assert.equal(ns.GetUnitGroupBarAnchor(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF), ns.BAR_ANCHOR.TOP)
+		assert.equal(ns.SetUnitGroupBarAnchor(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, "sideways"), false)
+		assert.equal(ns.GetUnitBarAnchor("pet", ns.AURA_TYPE.BUFF), ns.BAR_ANCHOR.TOP)
 	end)
 
 	runner:test("appearance exposes style and clamped bar width", function()

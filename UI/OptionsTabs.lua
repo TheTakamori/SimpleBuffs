@@ -1,8 +1,9 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
-local function update_tab_button(tabButton)
-	local selected = tabButton.panelState.selectedGroup == tabButton.groupKey
+-- Shared selected/hover/normal styling for both the unit sidebar tabs and
+-- the Buffs/Debuffs/Manage sub-tabs, so the two button kinds can't drift.
+local function apply_tab_visual(tabButton, selected)
 	if selected then
 		tabButton.background:SetColorTexture(
 			ns.OPTIONS_LAYOUT.TAB_SELECTED_R,
@@ -23,6 +24,10 @@ local function update_tab_button(tabButton)
 		tabButton.background:SetColorTexture(ns.OPTIONS_LAYOUT.TAB_CLEAR_R, ns.OPTIONS_LAYOUT.TAB_CLEAR_G, ns.OPTIONS_LAYOUT.TAB_CLEAR_B, ns.OPTIONS_LAYOUT.TAB_CLEAR_A)
 		tabButton.text:SetTextColor(ns.OPTIONS_LAYOUT.TAB_TEXT_NORMAL_R, ns.OPTIONS_LAYOUT.TAB_TEXT_NORMAL_G, ns.OPTIONS_LAYOUT.TAB_TEXT_NORMAL_B)
 	end
+end
+
+local function update_tab_button(tabButton)
+	apply_tab_visual(tabButton, tabButton.panelState.selectedGroup == tabButton.groupKey)
 end
 
 function ns.CreateUnitTabButton(parent, groupKey, y, panelState)
@@ -60,27 +65,7 @@ local function update_aura_tab_button(tabButton)
 	if not ns.IsKnownValue(ns.GROUP_SUBTAB_ORDER, selected) then
 		selected = ns.GROUP_SUBTAB.BUFF
 	end
-	local isSelected = selected == tabButton.subTab
-	if isSelected then
-		tabButton.background:SetColorTexture(
-			ns.OPTIONS_LAYOUT.TAB_SELECTED_R,
-			ns.OPTIONS_LAYOUT.TAB_SELECTED_G,
-			ns.OPTIONS_LAYOUT.TAB_SELECTED_B,
-			ns.OPTIONS_LAYOUT.TAB_SELECTED_A
-		)
-		tabButton.text:SetTextColor(ns.OPTIONS_LAYOUT.TAB_TEXT_SELECTED_R, ns.OPTIONS_LAYOUT.TAB_TEXT_SELECTED_G, ns.OPTIONS_LAYOUT.TAB_TEXT_SELECTED_B)
-	elseif tabButton.isHovering then
-		tabButton.background:SetColorTexture(
-			ns.OPTIONS_LAYOUT.TAB_HOVER_R,
-			ns.OPTIONS_LAYOUT.TAB_HOVER_G,
-			ns.OPTIONS_LAYOUT.TAB_HOVER_B,
-			ns.OPTIONS_LAYOUT.TAB_HOVER_A
-		)
-		tabButton.text:SetTextColor(ns.OPTIONS_LAYOUT.TAB_TEXT_HOVER_R, ns.OPTIONS_LAYOUT.TAB_TEXT_HOVER_G, ns.OPTIONS_LAYOUT.TAB_TEXT_HOVER_B)
-	else
-		tabButton.background:SetColorTexture(ns.OPTIONS_LAYOUT.TAB_CLEAR_R, ns.OPTIONS_LAYOUT.TAB_CLEAR_G, ns.OPTIONS_LAYOUT.TAB_CLEAR_B, ns.OPTIONS_LAYOUT.TAB_CLEAR_A)
-		tabButton.text:SetTextColor(ns.OPTIONS_LAYOUT.TAB_TEXT_NORMAL_R, ns.OPTIONS_LAYOUT.TAB_TEXT_NORMAL_G, ns.OPTIONS_LAYOUT.TAB_TEXT_NORMAL_B)
-	end
+	apply_tab_visual(tabButton, selected == tabButton.subTab)
 end
 
 function ns.CreateAuraTypeTabButtons(parent, groupKey, panelState, y)

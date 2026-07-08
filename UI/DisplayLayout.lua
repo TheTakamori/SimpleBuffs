@@ -16,6 +16,10 @@ local function get_or_create_row(frame, auraType)
 	return row
 end
 
+-- Bar Stack is always a single vertical column, stacked top-down in a fixed
+-- order (matching Bar Sort) regardless of Bar Anchor - Bar Anchor controls
+-- which edge of the standalone display stays fixed on screen as bars are
+-- added/removed (see UI/Display.lua), not which bar renders where.
 local function position_button(button, row, index, size, spacing, layout, style)
 	button:ClearAllPoints()
 	if style == ns.AURA_STYLE.BAR then

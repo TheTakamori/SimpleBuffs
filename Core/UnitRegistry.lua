@@ -92,44 +92,44 @@ end
 
 ns.UNIT_GROUP_DEFINITIONS = {
 	player = {
-		tokens = { "player" },
+		tokens = { ns.UNIT_TOKEN.PLAYER },
 	},
 	target = {
-		tokens = { "target" },
+		tokens = { ns.UNIT_TOKEN.TARGET },
 	},
 	focus = {
-		tokens = { "focus" },
+		tokens = { ns.UNIT_TOKEN.FOCUS },
 	},
 	pet = {
-		tokens = { "pet" },
+		tokens = { ns.UNIT_TOKEN.PET },
 	},
 	party = {
-		prefix = "party",
-		count = 4,
+		prefix = ns.UNIT_TOKEN.PARTY_PREFIX,
+		count = ns.GROUP_SIZE.PARTY,
 	},
 	partyPets = {
-		prefix = "partypet",
-		count = 4,
+		prefix = ns.UNIT_TOKEN.PARTY_PET_PREFIX,
+		count = ns.GROUP_SIZE.PARTY,
 	},
 	raid = {
-		prefix = "raid",
-		count = 40,
+		prefix = ns.UNIT_TOKEN.RAID_PREFIX,
+		count = ns.GROUP_SIZE.RAID,
 	},
 	raidPets = {
-		prefix = "raidpet",
-		count = 40,
+		prefix = ns.UNIT_TOKEN.RAID_PET_PREFIX,
+		count = ns.GROUP_SIZE.RAID,
 	},
 	boss = {
-		prefix = "boss",
-		count = 8,
+		prefix = ns.UNIT_TOKEN.BOSS_PREFIX,
+		count = ns.GROUP_SIZE.BOSS,
 	},
 	arena = {
-		prefix = "arena",
-		count = 5,
+		prefix = ns.UNIT_TOKEN.ARENA_PREFIX,
+		count = ns.GROUP_SIZE.ARENA,
 	},
 	arenaPets = {
-		prefix = "arenapet",
-		count = 5,
+		prefix = ns.UNIT_TOKEN.ARENA_PET_PREFIX,
+		count = ns.GROUP_SIZE.ARENA,
 	},
 }
 
@@ -167,7 +167,9 @@ ns.ANCHOR_DEFAULTS = {
 	},
 }
 
-ns.STANDALONE_DEFAULTS = {
+-- Base screen position per standalone container group, before Buffs/Debuffs
+-- are split into independently-movable containers below.
+local BASE_STANDALONE_DEFAULTS = {
 	player = {
 		point = ns.UI.ANCHOR_CENTER,
 		relativePoint = ns.UI.ANCHOR_CENTER,
@@ -223,3 +225,24 @@ ns.STANDALONE_DEFAULTS = {
 		y = -40,
 	},
 }
+
+-- How far below its Buffs counterpart a Debuffs container defaults to, so
+-- the two don't spawn stacked exactly on top of each other before the user
+-- drags them apart.
+local STANDALONE_DEBUFF_DEFAULT_Y_OFFSET = -70
+
+ns.STANDALONE_DEFAULTS = {}
+for baseKey, position in pairs(BASE_STANDALONE_DEFAULTS) do
+	ns.STANDALONE_DEFAULTS[baseKey .. ns.STANDALONE_CONTAINER_KEY_SEPARATOR .. ns.AURA_TYPE.BUFF] = {
+		point = position.point,
+		relativePoint = position.relativePoint,
+		x = position.x,
+		y = position.y,
+	}
+	ns.STANDALONE_DEFAULTS[baseKey .. ns.STANDALONE_CONTAINER_KEY_SEPARATOR .. ns.AURA_TYPE.DEBUFF] = {
+		point = position.point,
+		relativePoint = position.relativePoint,
+		x = position.x,
+		y = position.y + STANDALONE_DEBUFF_DEFAULT_Y_OFFSET,
+	}
+end

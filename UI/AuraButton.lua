@@ -111,12 +111,34 @@ local function on_enter(self)
 		return
 	end
 	GameTooltip:SetOwner(self, ns.UI.ANCHOR_RIGHT)
-	if entry.auraType == ns.AURA_TYPE.DEBUFF and GameTooltip.SetUnitDebuffByAuraInstanceID and entry.auraInstanceID then
+	local aura = entry.aura
+	if aura and aura.isSimulated then
+		-- A simulated auraInstanceID isn't a real live aura, so the
+		-- SetUnit*ByAuraInstanceID calls below wouldn't resolve to anything;
+		-- show the sample's own name instead, flagged as a preview.
+		GameTooltip:ClearLines()
+		local ok, name = pcall(function()
+			return aura.name
+		end)
+		GameTooltip:AddLine(
+			(ok and type(name) == ns.LUA_TYPE.STRING and name) or ns.TEXT.AURA_TOOLTIP_FALLBACK,
+			ns.AURA_BUTTON.TOOLTIP_COLOR_R,
+			ns.AURA_BUTTON.TOOLTIP_COLOR_G,
+			ns.AURA_BUTTON.TOOLTIP_COLOR_B
+		)
+		GameTooltip:AddLine(
+			ns.TEXT.AURA_TOOLTIP_SIMULATED,
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_R,
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_G,
+			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_B
+		)
+	elseif entry.auraType == ns.AURA_TYPE.DEBUFF and GameTooltip.SetUnitDebuffByAuraInstanceID and entry.auraInstanceID then
 		GameTooltip:SetUnitDebuffByAuraInstanceID(entry.unit, entry.auraInstanceID, ns.AURA_FILTER[entry.auraType])
 	elseif entry.auraType == ns.AURA_TYPE.BUFF and GameTooltip.SetUnitBuffByAuraInstanceID and entry.auraInstanceID then
 		GameTooltip:SetUnitBuffByAuraInstanceID(entry.unit, entry.auraInstanceID, ns.AURA_FILTER[entry.auraType])
 	else
-		GameTooltip:SetText(
+		GameTooltip:ClearLines()
+		GameTooltip:AddLine(
 			(ns.UNIT_LABEL[entry.unit] or entry.unit) .. ns.TEXT.SPACE .. (ns.AURA_LABEL[entry.auraType] or ns.TEXT.AURA_TOOLTIP_FALLBACK),
 			ns.AURA_BUTTON.TOOLTIP_COLOR_R,
 			ns.AURA_BUTTON.TOOLTIP_COLOR_G,

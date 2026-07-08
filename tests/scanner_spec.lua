@@ -320,4 +320,130 @@ return function(runner, ns)
 		assert.equal(#result.buff, 1)
 		assert.equal(#result.debuff, 1)
 	end)
+
+	runner:test("Simulate is off by default and resets per group/aura type", function()
+		assert.equal(ns.IsSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF), false)
+
+		assert.equal(ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true), true)
+		assert.equal(ns.IsSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF), true)
+		assert.equal(ns.IsSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.DEBUFF), false)
+		assert.equal(ns.IsSimulateEnabled(ns.UNIT_GROUP.TARGET, ns.AURA_TYPE.BUFF), false)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+		assert.equal(ns.IsSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF), false)
+	end)
+
+	runner:test("Simulate phase advances and resets to 0 whenever freshly enabled", function()
+		assert.equal(ns.GetSimulatePhase(), 0)
+
+		ns.AdvanceSimulatePhase()
+		ns.AdvanceSimulatePhase()
+		assert.equal(ns.GetSimulatePhase(), 2)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+		assert.equal(ns.GetSimulatePhase(), 0)
+
+		ns.AdvanceSimulatePhase()
+		assert.equal(ns.GetSimulatePhase(), 1)
+
+		-- Phase wraps rather than growing unbounded.
+		for _ = 1, #ns.SIMULATE.GROWTH_FRACTIONS do
+			ns.AdvanceSimulatePhase()
+		end
+		assert.equal(ns.GetSimulatePhase() < #ns.SIMULATE.GROWTH_FRACTIONS, true)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+	end)
+
+	runner:test("ScanUnitAuraType returns varied sample rows when Simulate is enabled", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function()
+				error("Simulate should bypass the real scan APIs entirely")
+			end,
+		})
+
+		-- Simulate's phase resets to 0 (the smallest sample count) whenever
+		-- it's freshly enabled; advance to the full-count phase so this
+		-- assertion sees the whole deliberately-varied sample set.
+		while ns.GetSimulatePhase() ~= #ns.SIMULATE.GROWTH_FRACTIONS - ns.NUMBER.TWO do
+			ns.AdvanceSimulatePhase()
+		end
+
+		local rows = ns.ScanUnitAuraType("player", ns.AURA_TYPE.BUFF)
+
+		assert.equal(#rows > 0, true)
+		local sawStacks, sawSingle = false, false
+		for index = 1, #rows do
+			local row = rows[index]
+			assert.equal(row.unit, "player")
+			assert.equal(row.auraType, ns.AURA_TYPE.BUFF)
+			assert.equal(type(row.aura.name), "string")
+			assert.equal(type(row.aura.icon), "string")
+			assert.equal(row.aura.isSimulated, true)
+			assert.equal(row.aura.duration ~= nil, true)
+			assert.equal(row.aura.expirationTime ~= nil, true)
+			if row.applicationDisplayCount then
+				sawStacks = true
+			else
+				sawSingle = true
+			end
+		end
+		-- The sample set is deliberately varied (some stacking, some not).
+		assert.equal(sawStacks, true)
+		assert.equal(sawSingle, true)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+	end)
+
+	runner:test("ScanUnitAuraType cycles the sample count as Simulate's phase advances", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+
+		local counts = {}
+		for _ = 1, #ns.SIMULATE.GROWTH_FRACTIONS do
+			counts[#counts + 1] = #ns.ScanUnitAuraType("player", ns.AURA_TYPE.BUFF)
+			ns.AdvanceSimulatePhase()
+		end
+
+		-- Enabling Simulate always starts at phase 0 (the smallest count);
+		-- the cycle should grow to the full sample set and shrink back down
+		-- rather than staying fixed, so the display visibly resizes.
+		local minCount, maxCount = counts[1], counts[1]
+		for index = 2, #counts do
+			minCount = math.min(minCount, counts[index])
+			maxCount = math.max(maxCount, counts[index])
+		end
+		assert.equal(minCount < maxCount, true)
+		assert.equal(minCount >= 1, true)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+	end)
+
+	runner:test("ScanUnitAuraType ignores Simulate when the aura type is disabled or the unit is missing", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+
+		ns.SetUnitGroupAuraEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		assert.equal(#ns.ScanUnitAuraType("player", ns.AURA_TYPE.BUFF), 0)
+
+		ns.SetUnitGroupAuraEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+		rawset(_G, "UnitExists", function()
+			return false
+		end)
+		assert.equal(#ns.ScanUnitAuraType("player", ns.AURA_TYPE.BUFF), 0)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+	end)
 end

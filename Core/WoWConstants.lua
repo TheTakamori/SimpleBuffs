@@ -6,16 +6,11 @@ ns.DB_KEY = {
 	SPACING = "spacing",
 	MAX_AURAS = "maxAuras",
 	SCALE = "scale",
-	LAYOUT = "layout",
-	SORT_RULE = "sortRule",
-	FILTER_MODE = "filterMode",
 	SHOW_COUNTDOWN = "showCountdown",
 	SHOW_SWIPE = "showSwipe",
 	SHOW_COUNTS = "showCounts",
 	SHOW_ICON = "showIcon",
-	STYLE = "style",
 	BAR_WIDTH = "barWidth",
-	BAR_SORT = "barSort",
 }
 
 ns.AURA_FILTER_SUFFIX = {
@@ -76,6 +71,8 @@ ns.BLIZZARD_FRAME = {
 	TARGET_FRAME = "TargetFrame",
 	FOCUS_FRAME = "FocusFrame",
 	PET_FRAME = "PetFrame",
+	PLAYER_BUFF_FRAME = "BuffFrame",
+	TEMPORARY_ENCHANT_FRAME = "TemporaryEnchantFrame",
 }
 
 ns.UNIT_TOKEN = {
@@ -90,4 +87,13 @@ ns.UNIT_TOKEN = {
 	BOSS_PREFIX = "boss",
 	ARENA_PREFIX = "arena",
 	ARENA_PET_PREFIX = "arenapet",
+}
+
+-- Maximum number of units the client exposes per indexed unit-token family
+-- (party1..party4, raid1..raid40, boss1..boss8, arena1..arena5).
+ns.GROUP_SIZE = {
+	PARTY = 4,
+	RAID = 40,
+	BOSS = 8,
+	ARENA = 5,
 }

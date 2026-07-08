@@ -13,6 +13,10 @@ local DEFAULT_STYLE = {
 	style = ns.AURA_STYLE.ICON,
 	barWidth = 160,
 	barSort = ns.BAR_SORT.ALPHA_ASC,
+	-- Bottom (not Top) is the default so a freshly-configured Bar Stack
+	-- keeps behaving exactly like before Bar Anchor existed: top edge fixed,
+	-- growing downward. Top is the newer, opt-in "grows upward" choice.
+	barAnchor = ns.BAR_ANCHOR.BOTTOM,
 }
 
 local function default_aura_options()
@@ -31,6 +35,7 @@ local function default_aura_options()
 		style = DEFAULT_STYLE.style,
 		barWidth = DEFAULT_STYLE.barWidth,
 		barSort = DEFAULT_STYLE.barSort,
+		barAnchor = DEFAULT_STYLE.barAnchor,
 	}
 end
 
@@ -59,12 +64,23 @@ local function copy_position(position)
 	}
 end
 
+local function build_standalone_defaults()
+	local result = {}
+	for containerKey, position in pairs(ns.STANDALONE_DEFAULTS) do
+		result[containerKey] = copy_position(position)
+	end
+	return result
+end
+
 ns.DEFAULTS = {
 	version = ns.DB_VERSION,
 	locked = false,
 	minimap = {
 		angle = 225,
 		hide = false,
+	},
+	blizzardFrames = {
+		hidePlayerBuffs = false,
 	},
 	appearance = {
 		iconSize = DEFAULT_STYLE.iconSize,
@@ -82,6 +98,7 @@ ns.DEFAULTS = {
 		style = DEFAULT_STYLE.style,
 		barWidth = DEFAULT_STYLE.barWidth,
 		barSort = DEFAULT_STYLE.barSort,
+		barAnchor = DEFAULT_STYLE.barAnchor,
 	},
 	units = {
 		player = default_unit_options(),
@@ -102,15 +119,5 @@ ns.DEFAULTS = {
 		player = copy_position(ns.ANCHOR_DEFAULTS.player),
 		target = copy_position(ns.ANCHOR_DEFAULTS.target),
 	},
-	standalone = {
-		player = copy_position(ns.STANDALONE_DEFAULTS.player),
-		target = copy_position(ns.STANDALONE_DEFAULTS.target),
-		focus = copy_position(ns.STANDALONE_DEFAULTS.focus),
-		pet = copy_position(ns.STANDALONE_DEFAULTS.pet),
-		party = copy_position(ns.STANDALONE_DEFAULTS.party),
-		partyPets = copy_position(ns.STANDALONE_DEFAULTS.partyPets),
-		raid = copy_position(ns.STANDALONE_DEFAULTS.raid),
-		raidPets = copy_position(ns.STANDALONE_DEFAULTS.raidPets),
-		enemy = copy_position(ns.STANDALONE_DEFAULTS.enemy),
-	},
+	standalone = build_standalone_defaults(),
 }

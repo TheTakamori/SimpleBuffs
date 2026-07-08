@@ -56,26 +56,39 @@ function ns.StopStandaloneDrag(frame)
 	movableFrame.simpleBuffsPositionKey = nil
 end
 
+-- Buffs and Debuffs are independently movable containers, so the tooltip
+-- names which group AND which aura type is being dragged (e.g. "Player
+-- Buffs"), not just the group.
+local function get_standalone_container_label(baseContainerKey)
+	if baseContainerKey == ns.STANDALONE_CONTAINER_KEY.ENEMY then
+		return ns.CONTAINER_LABEL.ENEMY
+	end
+	return ns.UNIT_GROUP_CONTAINER[baseContainerKey] or baseContainerKey
+end
+
 local function get_standalone_frame_label(frame)
-	local unit = frame and frame.unit
-	if not unit then
+	if not frame then
 		return nil
 	end
 
+	if frame.baseContainerKey then
+		local groupLabel = get_standalone_container_label(frame.baseContainerKey)
+		local auraLabel = ns.AURA_LABEL[frame.auraType]
+		if auraLabel then
+			return groupLabel .. ns.TEXT.SPACE .. auraLabel
+		end
+		return groupLabel
+	end
+
+	local unit = frame.unit
+	if not unit then
+		return nil
+	end
 	if ns.UNIT_LABEL[unit] then
 		return ns.UNIT_LABEL[unit]
 	end
-
 	local groupKey = ns.GetUnitGroup(unit) or unit
-	if ns.UNIT_GROUP_LABEL[groupKey] then
-		return ns.UNIT_GROUP_LABEL[groupKey]
-	end
-	for key, label in pairs(ns.UNIT_GROUP_CONTAINER or {}) do
-		if ns.GetStandaloneContainerKey and ns.GetStandaloneContainerKey(key) == unit then
-			return label
-		end
-	end
-	return ns.UNIT_GROUP_CONTAINER[groupKey] or unit
+	return ns.UNIT_GROUP_LABEL[groupKey] or unit
 end
 
 local function show_move_tooltip(self)

@@ -25,7 +25,7 @@ local function add_unit(units, unit, groupKey)
 		local number = unit:match(ns.PATTERN.UNIT_NUMBER_SUFFIX)
 		local prefix = number and unit:sub(1, #unit - #number) or unit
 		local groupLabel = ns.UNIT_GROUP_LABEL[groupKey] or prefix
-		ns.UNIT_LABEL[unit] = number and (groupLabel .. " " .. number) or groupLabel
+		ns.UNIT_LABEL[unit] = number and (groupLabel .. ns.TEXT.SPACE .. number) or groupLabel
 	end
 end
 
@@ -40,7 +40,7 @@ local function build_static_units()
 			for index = 1, #definition.tokens do
 				add_unit(units, definition.tokens[index], groupKey)
 			end
-		elseif definition.prefix and not definition.dynamic then
+		elseif definition.prefix then
 			for index = 1, definition.count do
 				add_unit(units, definition.prefix .. index, groupKey)
 			end
@@ -77,6 +77,14 @@ end
 
 function ns.GetStandaloneContainerKey(groupKey)
 	return get_standalone_container_key(groupKey)
+end
+
+-- Identifies one aura type's own standalone container (Buffs and Debuffs
+-- are independently movable), as opposed to ns.GetStandaloneContainerKey's
+-- base group key, which still identifies the shared set of units that
+-- belong together (used to look up container membership).
+function ns.GetStandaloneContainerInstanceKey(groupKey, auraType)
+	return get_standalone_container_key(groupKey) .. ns.STANDALONE_CONTAINER_KEY_SEPARATOR .. auraType
 end
 
 function ns.IsTrackedUnit(unit)
