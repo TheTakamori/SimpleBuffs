@@ -2,8 +2,8 @@ SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
 ns.ADDON_NAME = "SimpleBuffs"
-ns.VERSION = "1.3.0"
-ns.DB_VERSION = 7
+ns.VERSION = "1.5.0"
+ns.DB_VERSION = 9
 ns.SELECT_COUNT = "#"
 
 ns.SLASH_COMMANDS = {
@@ -37,6 +37,29 @@ ns.AURA_FILTER = {
 ns.AURA_LABEL = {
 	buff = "Buffs",
 	debuff = "Debuffs",
+}
+
+ns.AURA_TYPE_SHORT_LABEL = {
+	buff = "Buff",
+	debuff = "Debuff",
+}
+
+ns.GROUP_SUBTAB = {
+	BUFF = ns.AURA_TYPE.BUFF,
+	DEBUFF = ns.AURA_TYPE.DEBUFF,
+	MANAGE = "manage",
+}
+
+ns.GROUP_SUBTAB_ORDER = {
+	ns.GROUP_SUBTAB.BUFF,
+	ns.GROUP_SUBTAB.DEBUFF,
+	ns.GROUP_SUBTAB.MANAGE,
+}
+
+ns.GROUP_SUBTAB_LABEL = {
+	buff = ns.AURA_LABEL.buff,
+	debuff = ns.AURA_LABEL.debuff,
+	manage = "Manage Auras",
 }
 
 ns.DISPLAY_MODE = {
@@ -186,4 +209,49 @@ ns.BAR_SORT_LABEL = {
 	["time-left-desc"] = "Time Left: Long to Short",
 	["max-duration-asc"] = "Max Duration: Short to Long",
 	["max-duration-desc"] = "Max Duration: Long to Short",
+}
+
+ns.MANAGE_FILTER = {
+	BOTH = "both",
+	BUFF = ns.AURA_TYPE.BUFF,
+	DEBUFF = ns.AURA_TYPE.DEBUFF,
+}
+
+ns.MANAGE_FILTER_ORDER = {
+	ns.MANAGE_FILTER.BOTH,
+	ns.MANAGE_FILTER.BUFF,
+	ns.MANAGE_FILTER.DEBUFF,
+}
+
+ns.MANAGE_FILTER_LABEL = {
+	both = "Both",
+	buff = "Buffs Only",
+	debuff = "Debuffs Only",
+}
+
+ns.MANAGE_SORT = {
+	ALPHA_ASC = "alpha-asc",
+	ALPHA_DESC = "alpha-desc",
+	FIRST_SEEN_ASC = "first-seen-asc",
+	FIRST_SEEN_DESC = "first-seen-desc",
+	LAST_SEEN_ASC = "last-seen-asc",
+	LAST_SEEN_DESC = "last-seen-desc",
+}
+
+ns.MANAGE_SORT_ORDER = {
+	ns.MANAGE_SORT.ALPHA_ASC,
+	ns.MANAGE_SORT.ALPHA_DESC,
+	ns.MANAGE_SORT.FIRST_SEEN_ASC,
+	ns.MANAGE_SORT.FIRST_SEEN_DESC,
+	ns.MANAGE_SORT.LAST_SEEN_ASC,
+	ns.MANAGE_SORT.LAST_SEEN_DESC,
+}
+
+ns.MANAGE_SORT_LABEL = {
+	["alpha-asc"] = "A-Z",
+	["alpha-desc"] = "Z-A",
+	["first-seen-asc"] = "First Seen: Oldest First",
+	["first-seen-desc"] = "First Seen: Newest First",
+	["last-seen-asc"] = "Last Seen: Oldest First",
+	["last-seen-desc"] = "Last Seen: Newest First",
 }

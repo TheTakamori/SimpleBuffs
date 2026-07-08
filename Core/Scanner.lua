@@ -78,14 +78,12 @@ local function build_scan_row(unit, auraType, auraInstanceID, aura)
 	return row
 end
 
-local function scan_with_instance_ids(unit, auraType)
+local function scan_with_instance_ids(unit, auraType, filter, maxCount, sortRule)
 	if not C_UnitAuras or not C_UnitAuras.GetUnitAuraInstanceIDs then
 		return nil
 	end
 
-	local maxCount = ns.GetUnitMaxAuras(unit, auraType)
-	local filter = build_filter(unit, auraType)
-	local instanceIDs = C_UnitAuras.GetUnitAuraInstanceIDs(unit, filter, maxCount, get_sort_rule(unit, auraType), get_sort_direction())
+	local instanceIDs = C_UnitAuras.GetUnitAuraInstanceIDs(unit, filter, maxCount, sortRule, get_sort_direction())
 	local results = {}
 	for index = 1, #(instanceIDs or {}) do
 		local auraInstanceID = instanceIDs[index]
@@ -97,14 +95,12 @@ local function scan_with_instance_ids(unit, auraType)
 	return results
 end
 
-local function scan_with_unit_auras(unit, auraType)
+local function scan_with_unit_auras(unit, auraType, filter, maxCount, sortRule)
 	if not C_UnitAuras or not C_UnitAuras.GetUnitAuras then
 		return nil
 	end
 
-	local maxCount = ns.GetUnitMaxAuras(unit, auraType)
-	local filter = build_filter(unit, auraType)
-	local auras = C_UnitAuras.GetUnitAuras(unit, filter, maxCount, get_sort_rule(unit, auraType), get_sort_direction())
+	local auras = C_UnitAuras.GetUnitAuras(unit, filter, maxCount, sortRule, get_sort_direction())
 	local results = {}
 	for index = 1, #(auras or {}) do
 		local aura = auras[index]
@@ -115,7 +111,7 @@ local function scan_with_unit_auras(unit, auraType)
 	return results
 end
 
-local function scan_with_index(unit, auraType)
+local function scan_with_index(unit, auraType, filter, maxCount)
 	if not C_UnitAuras then
 		return {}
 	end
@@ -127,8 +123,6 @@ local function scan_with_index(unit, auraType)
 		return {}
 	end
 
-	local maxCount = ns.GetUnitMaxAuras(unit, auraType)
-	local filter = build_filter(unit, auraType)
 	local results = {}
 	for index = 1, maxCount do
 		local aura = getter(unit, index, filter)
@@ -145,15 +139,42 @@ function ns.ScanUnitAuraType(unit, auraType)
 		return {}
 	end
 
-	return scan_with_instance_ids(unit, auraType)
-		or scan_with_unit_auras(unit, auraType)
-		or scan_with_index(unit, auraType)
+	local filter = build_filter(unit, auraType)
+	local maxCount = ns.GetUnitMaxAuras(unit, auraType)
+	local sortRule = get_sort_rule(unit, auraType)
+	return scan_with_instance_ids(unit, auraType, filter, maxCount, sortRule)
+		or scan_with_unit_auras(unit, auraType, filter, maxCount, sortRule)
+		or scan_with_index(unit, auraType, filter, maxCount)
 end
 
 function ns.ScanUnitAuras(unit)
 	local result = {}
 	for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
 		result[auraType] = ns.ScanUnitAuraType(unit, auraType)
+	end
+	return result
+end
+
+-- Discovery bypasses the unit's enabled-toggle, Filter Mode suffix, and
+-- configured Max Auras so the Manage Auras tab can list every aura that's
+-- ever appeared, independent of what's currently configured to display.
+function ns.ScanUnitAuraTypeForDiscovery(unit, auraType)
+	if not unit_exists(unit) then
+		return {}
+	end
+
+	local filter = ns.AURA_FILTER[auraType]
+	local maxCount = ns.LIMITS.MAX_AURAS_MAX
+	local sortRule = get_enum_value(Enum and Enum.UnitAuraSortRule, ns.SORT_RULE.DEFAULT)
+	return scan_with_instance_ids(unit, auraType, filter, maxCount, sortRule)
+		or scan_with_unit_auras(unit, auraType, filter, maxCount, sortRule)
+		or scan_with_index(unit, auraType, filter, maxCount)
+end
+
+function ns.ScanUnitAurasForDiscovery(unit)
+	local result = {}
+	for _, auraType in ipairs(ns.AURA_TYPE_ORDER) do
+		result[auraType] = ns.ScanUnitAuraTypeForDiscovery(unit, auraType)
 	end
 	return result
 end

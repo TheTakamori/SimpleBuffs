@@ -14,6 +14,7 @@ package.path = table.concat({
 }, ";")
 
 _G.SimpleBuffs = {}
+_G.time = os.time
 _G.Enum = {
 	UnitAuraSortRule = {
 		Default = "Default",

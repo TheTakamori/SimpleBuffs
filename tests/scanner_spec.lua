@@ -250,4 +250,74 @@ return function(runner, ns)
 		assert.equal(rows[1].auraInstanceID, 31)
 		assert.equal(rows[1].aura.name, "Fallback Buff")
 	end)
+
+	runner:test("ScanUnitAuraTypeForDiscovery ignores enabled toggle, filter suffix, and configured max", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		ns.SetUnitGroupAuraEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+		ns.SetUnitGroupFilterMode(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.FILTER_MODE.PLAYER)
+		ns.SetUnitGroupAppearanceValue(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.DB_KEY.MAX_AURAS, 3)
+
+		local captured = {}
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function(_, filter, maxCount)
+				captured.filter = filter
+				captured.maxCount = maxCount
+				return { 1, 2 }
+			end,
+			GetAuraDataByAuraInstanceID = function(_, auraInstanceID)
+				return aura(auraInstanceID, "Aura " .. tostring(auraInstanceID))
+			end,
+		})
+
+		local rows = ns.ScanUnitAuraTypeForDiscovery("player", ns.AURA_TYPE.BUFF)
+
+		assert.equal(#rows, 2)
+		assert.equal(captured.filter, "HELPFUL")
+		assert.equal(captured.maxCount, ns.LIMITS.MAX_AURAS_MAX)
+	end)
+
+	runner:test("ScanUnitAuraTypeForDiscovery returns empty rows for missing units", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		rawset(_G, "UnitExists", function()
+			return false
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function()
+				error("discovery scan should not query missing units")
+			end,
+		})
+
+		local rows = ns.ScanUnitAuraTypeForDiscovery("pet", ns.AURA_TYPE.BUFF)
+
+		assert.equal(#rows, 0)
+	end)
+
+	runner:test("ScanUnitAurasForDiscovery covers both aura types", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function(_, filter)
+				if filter == "HELPFUL" then
+					return { 1 }
+				end
+				return { 2 }
+			end,
+			GetAuraDataByAuraInstanceID = function(_, auraInstanceID)
+				return aura(auraInstanceID, "Aura " .. tostring(auraInstanceID))
+			end,
+		})
+
+		local result = ns.ScanUnitAurasForDiscovery("player")
+
+		assert.equal(#result.buff, 1)
+		assert.equal(#result.debuff, 1)
+	end)
 end

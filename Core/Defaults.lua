@@ -44,6 +44,9 @@ local function default_unit_options(attachedPosition)
 			buff = default_aura_options(),
 			debuff = default_aura_options(),
 		},
+		knownAuras = {},
+		manageFilter = ns.MANAGE_FILTER.BOTH,
+		manageSort = ns.MANAGE_SORT.ALPHA_ASC,
 	}
 end
 

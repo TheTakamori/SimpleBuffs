@@ -5,7 +5,7 @@ configurable displays. It is built for World of Warcraft Retail
 `12.0.5 (Midnight)` and uses Blizzard cooldown widgets for countdown text so
 the UI can display aura timers without custom combat-state calculations.
 
-Current version: `1.3.0`.
+Current version: `1.5.0`.
 
 ## Features
 
@@ -20,6 +20,17 @@ Current version: `1.3.0`.
   toggle (on by default) to hide the leading icon and let the name fill the
   bar, and a dedicated Bar Sort dropdown (A-Z, Z-A, Time Left, or Max
   Duration, each ascending or descending).
+- Adds a "Manage Auras" tab alongside Buffs/Debuffs on every unit tab, listing
+  every buff/debuff ever seen on that unit with a checkbox to hide or show it
+  (applies to both Icon and Bar Stack styles) and a Forget button to drop it
+  from the list. New auras are discovered automatically, independent of that
+  unit's Filter/Max Auras display settings, so the list reflects everything
+  that can appear, not just what's currently configured to show. Hidden/known
+  auras are scoped per unit group and are not carried over by Copy From. Each
+  row shows whether the entry is a Buff or Debuff and, on hover, that spell's
+  own Blizzard tooltip. A Show dropdown filters the list to Buffs, Debuffs, or
+  Both, and a Sort dropdown orders it A-Z/Z-A or by when each aura was first
+  or most recently seen (each ascending or descending).
 - Includes hover explanations on option labels and controls.
 - Provides standalone grouped displays for users who prefer a custom placement.
   Unlocked standalone displays move with Shift-drag.
@@ -63,6 +74,13 @@ Current version: `1.3.0`.
   it can't be read safely, Max Duration sort silently falls back to leaving
   auras in their native scan order rather than reordering them. This is a
   Midnight platform limitation, not an addon bug.
+- Manage Auras hiding remembers each aura's spell ID the first time it can be
+  read safely, then reuses that instead of re-reading it, so hiding keeps
+  working through combat/instances/PvP/M+ even once Blizzard starts marking
+  that aura's data as a Secret Value. A hidden aura applied for the very first
+  time while already in a restricted context can't be identified yet and will
+  briefly show until it's next seen outside that context. This is a Midnight
+  platform limitation, not an addon bug.
 
 ## License
 

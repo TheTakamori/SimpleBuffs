@@ -163,6 +163,189 @@ return function(runner, ns)
 		assert.equal(model.buff.rows[2].auraInstanceID, 2)
 	end)
 
+	local function aura_with_spell(id, name, spellId)
+		return {
+			auraInstanceID = id,
+			name = name,
+			icon = 1,
+			duration = 10,
+			expirationTime = 20,
+			timeMod = 1,
+			applications = 1,
+			spellId = spellId,
+		}
+	end
+
+	local function set_discovery_scan(rows)
+		rawset(_G, "UnitExists", function()
+			return true
+		end)
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function()
+				local ids = {}
+				for index = 1, #rows do
+					ids[index] = rows[index].auraInstanceID
+				end
+				return ids
+			end,
+			GetAuraDataByAuraInstanceID = function(_, auraInstanceID)
+				for index = 1, #rows do
+					if rows[index].auraInstanceID == auraInstanceID then
+						return rows[index].aura
+					end
+				end
+				return nil
+			end,
+			GetAuraDataBySpellID = function(_, spellId)
+				for index = 1, #rows do
+					if rows[index].aura.spellId == spellId then
+						return rows[index].aura
+					end
+				end
+				return nil
+			end,
+		})
+	end
+
+	runner:test("RefreshUnitModel discovers auras even when that aura type is disabled", function()
+		_G.SimpleBuffsDB = nil
+		ns.Runtime = nil
+		ns.InitDB()
+		ns.SetUnitAuraEnabled("focus", ns.AURA_TYPE.BUFF, false)
+
+		set_discovery_scan({ { auraInstanceID = 1, aura = aura_with_spell(1, "Well Fed", 12345) } })
+
+		ns.RefreshUnitModel("focus")
+
+		local entries = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.FOCUS)
+		assert.equal(#entries, 1)
+		assert.equal(entries[1].name, "Well Fed")
+	end)
+
+	runner:test("RefreshUnitModel excludes hidden auras from rows but keeps them known", function()
+		_G.SimpleBuffsDB = nil
+		ns.Runtime = nil
+		ns.InitDB()
+
+		set_discovery_scan({ { auraInstanceID = 1, aura = aura_with_spell(1, "Well Fed", 12345) } })
+
+		local first = ns.RefreshUnitModel("focus")
+		assert.equal(#first.buff.rows, 1)
+
+		ns.SetAuraHidden(ns.UNIT_GROUP.FOCUS, 12345, true)
+		local second = ns.RefreshUnitModel("focus")
+		assert.equal(#second.buff.rows, 0)
+		assert.equal(#ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.FOCUS), 1)
+
+		ns.SetAuraHidden(ns.UNIT_GROUP.FOCUS, 12345, false)
+		local third = ns.RefreshUnitModel("focus")
+		assert.equal(#third.buff.rows, 1)
+	end)
+
+	runner:test("RefreshUnitModel keeps hiding a known aura once combat makes its live data secret", function()
+		_G.SimpleBuffsDB = nil
+		ns.Runtime = nil
+		ns.InitDB()
+
+		-- Seen once while readable (e.g. out of combat) so the addon has a
+		-- chance to cache instanceID 1 -> spellId 777 and hide it.
+		set_discovery_scan({ { auraInstanceID = 1, aura = aura_with_spell(1, "Well Fed", 777) } })
+		ns.RefreshUnitModel("focus")
+		ns.SetAuraHidden(ns.UNIT_GROUP.FOCUS, 777, true)
+		local beforeCombat = ns.RefreshUnitModel("focus")
+		assert.equal(#beforeCombat.buff.rows, 0)
+
+		-- Combat starts while the same aura (same instanceID) is still up:
+		-- its own fields throw on access (Secret Value), but auraInstanceID
+		-- is never secret, and the addon should reuse the cached spellId
+		-- rather than needing to re-read the now-secret one.
+		local secretMeta = {
+			__index = function(_, key)
+				if key == "auraInstanceID" then
+					return 1
+				end
+				error("secret value")
+			end,
+		}
+		local secretAura = setmetatable({}, secretMeta)
+
+		rawset(_G, "C_UnitAuras", {
+			GetUnitAuraInstanceIDs = function()
+				return { 1 }
+			end,
+			GetAuraDataByAuraInstanceID = function()
+				return secretAura
+			end,
+		})
+
+		local duringCombat = ns.RefreshUnitModel("focus")
+		assert.equal(#duringCombat.buff.rows, 0)
+	end)
+
+	runner:test("spellId cache prunes entries once an aura is no longer scanned", function()
+		_G.SimpleBuffsDB = nil
+		ns.Runtime = nil
+		ns.InitDB()
+
+		set_discovery_scan({ { auraInstanceID = 1, aura = aura_with_spell(1, "Well Fed", 777) } })
+		ns.RefreshUnitModel("focus")
+		ns.SetAuraHidden(ns.UNIT_GROUP.FOCUS, 777, true)
+		local hidden = ns.RefreshUnitModel("focus")
+		assert.equal(#hidden.buff.rows, 0)
+
+		-- Aura 777 goes away entirely (no longer scanned at all).
+		set_discovery_scan({})
+		ns.RefreshUnitModel("focus")
+
+		-- A later, unrelated aura reuses instanceID 1; it must not inherit
+		-- aura 777's cached hidden state.
+		set_discovery_scan({ { auraInstanceID = 1, aura = aura_with_spell(1, "Different Buff", 888) } })
+		local model = ns.RefreshUnitModel("focus")
+		assert.equal(#model.buff.rows, 1)
+	end)
+
+	runner:test("RefreshUnitModel refreshes the options panel only on genuine new discovery", function()
+		_G.SimpleBuffsDB = nil
+		ns.Runtime = nil
+		ns.InitDB()
+
+		local refreshCount = 0
+		ns.RefreshOptionsPanel = function()
+			refreshCount = refreshCount + 1
+		end
+
+		set_discovery_scan({ { auraInstanceID = 1, aura = aura_with_spell(1, "Well Fed", 12345) } })
+
+		ns.RefreshUnitModel("focus")
+		assert.equal(refreshCount, 1)
+
+		ns.RefreshUnitModel("focus")
+		assert.equal(refreshCount, 1)
+	end)
+
+	runner:test("RefreshUnitModel skips discovery when aura data is unreadable", function()
+		_G.SimpleBuffsDB = nil
+		ns.Runtime = nil
+		ns.InitDB()
+
+		local secretMeta = {
+			__index = function()
+				error("secret value")
+			end,
+		}
+		local secretAura = setmetatable({ auraInstanceID = 1 }, secretMeta)
+
+		set_discovery_scan({ { auraInstanceID = 1, aura = secretAura } })
+
+		local model = ns.RefreshUnitModel("focus")
+
+		-- A read failure fails "closed" for the known-aura registry (skip
+		-- registration) but "open" for display (the row still renders,
+		-- matching the fallback behavior used elsewhere for secret values).
+		assert.equal(#ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.FOCUS), 0)
+		assert.equal(#model.buff.rows, 1)
+	end)
+
 	runner:test("MarkUnitDirty queues each tracked unit once", function()
 		ns.Runtime = nil
 		ns.RuntimeEnsure()

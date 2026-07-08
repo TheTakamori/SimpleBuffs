@@ -212,13 +212,24 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 
 	panelState.selectedAuraTabByGroup = panelState.selectedAuraTabByGroup or {}
 
-	local function resolveAuraType()
+	local function resolveSubTab()
 		local selected = panelState.selectedAuraTabByGroup[groupKey]
-		if not ns.IsKnownValue(ns.AURA_TYPE_ORDER, selected) then
-			selected = ns.AURA_TYPE.BUFF
+		if not ns.IsKnownValue(ns.GROUP_SUBTAB_ORDER, selected) then
+			selected = ns.GROUP_SUBTAB.BUFF
 			panelState.selectedAuraTabByGroup[groupKey] = selected
 		end
 		return selected
+	end
+
+	-- The settings-block helpers below (dropdowns/sliders/checks) are all
+	-- keyed by buff/debuff only; Manage Auras has no per-aura-type settings,
+	-- so it never reaches them (the whole block is hidden while it's active).
+	local function resolveAuraType()
+		local subTab = resolveSubTab()
+		if subTab == ns.GROUP_SUBTAB.MANAGE then
+			return ns.AURA_TYPE.BUFF
+		end
+		return subTab
 	end
 
 	local y = ns.NUMBER.ZERO
@@ -232,17 +243,20 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 	end
 	y = y - ns.OPTIONS_LAYOUT.TAB_AURA_BUTTON_HEIGHT - ns.OPTIONS_LAYOUT.TAB_AURA_TO_CHECK_GAP_Y
 
-	register_tab_child(tab, ns.CreateOptionsCheck(tab, ns.TEXT.OPTIONS_AURA_FRAME_ENABLED, y, function()
+	local settingsSection = CreateFrame(ns.UI.FRAME, nil, tab)
+	settingsSection:SetAllPoints()
+
+	register_tab_child(settingsSection, ns.CreateOptionsCheck(settingsSection, ns.TEXT.OPTIONS_AURA_FRAME_ENABLED, y, function()
 		return ns.GetUnitGroupOptions(groupKey)[resolveAuraType()] == true
 	end, function(value)
 		ns.SetUnitGroupAuraEnabled(groupKey, resolveAuraType(), value)
 	end, ns.NUMBER.ZERO, nil, ns.TEXT.OPTIONS_TOOLTIP_AURA_FRAME_ENABLED))
-	register_tab_child(tab, create_standalone_move_hint(tab, groupKey, ns.OPTIONS_LAYOUT.TAB_CHECK_HINT_X, y))
+	register_tab_child(settingsSection, create_standalone_move_hint(settingsSection, groupKey, ns.OPTIONS_LAYOUT.TAB_CHECK_HINT_X, y))
 	y = y - ns.OPTIONS_LAYOUT.TAB_CHECK_DROPDOWN_GAP_Y
 
 	for index = 1, #ns.OPTIONS_UNIT_DROPDOWN_COLUMNS do
 		local column = ns.OPTIONS_UNIT_DROPDOWN_COLUMNS[index]
-		create_dropdown_row(tab, groupKey, column, y, resolveAuraType)
+		create_dropdown_row(settingsSection, groupKey, column, y, resolveAuraType)
 		if not column.sameRowAsPrevious then
 			y = y - ns.OPTIONS_LAYOUT.TAB_ROW_GAP_Y
 		end
@@ -251,20 +265,32 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 	y = y - ns.OPTIONS_LAYOUT.TAB_DROPDOWN_SLIDER_GAP_Y
 
 	for index = 1, #ns.OPTIONS_STYLE_SLIDERS do
-		register_tab_child(tab, create_style_slider(tab, groupKey, ns.OPTIONS_STYLE_SLIDERS[index], y, resolveAuraType))
+		register_tab_child(settingsSection, create_style_slider(settingsSection, groupKey, ns.OPTIONS_STYLE_SLIDERS[index], y, resolveAuraType))
 		y = y - ns.OPTIONS_LAYOUT.TAB_ROW_GAP_Y
 	end
 
 	for index = 1, #ns.OPTIONS_STYLE_CHECKS do
 		local check = ns.OPTIONS_STYLE_CHECKS[index]
-		create_check_row(tab, groupKey, check, y, resolveAuraType)
+		create_check_row(settingsSection, groupKey, check, y, resolveAuraType)
 		if not check.sameRowAsPrevious then
 			y = y - ns.OPTIONS_LAYOUT.CHECK_ROW_GAP_Y
 		end
 	end
 
-	y = y - ns.OPTIONS_LAYOUT.TAB_COPY_FROM_GAP_Y
-	create_copy_from_row(tab, groupKey, panelState, y)
+	settingsSection.RefreshFromDB = function(self)
+		self:SetShown(resolveSubTab() ~= ns.GROUP_SUBTAB.MANAGE)
+		for _, child in ipairs(self.children or {}) do
+			if child.RefreshFromDB then
+				child:RefreshFromDB()
+			end
+		end
+	end
+	register_tab_child(tab, settingsSection)
+
+	local manageSection = ns.CreateOptionsManageTab(tab, groupKey, panelState)
+	register_tab_child(tab, manageSection)
+
+	create_copy_from_row(tab, groupKey, panelState, ns.OPTIONS_LAYOUT.TAB_COPY_FROM_Y)
 
 	tab.RefreshFromDB = function(self)
 		self:SetShown(panelState.selectedGroup == groupKey)

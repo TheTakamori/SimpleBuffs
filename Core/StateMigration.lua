@@ -169,6 +169,8 @@ local function sanitize_unit_options(groupKey, unitOptions, migrations)
 	end
 
 	unitOptions.attachedPosition = migration_or_default(ns.ATTACHED_POSITION_ORDER, unitOptions.attachedPosition, nil, ns.DEFAULTS.units[groupKey].attachedPosition, rawUnitOptions.attachedPosition)
+	unitOptions.manageFilter = migration_or_default(ns.MANAGE_FILTER_ORDER, unitOptions.manageFilter, nil, ns.DEFAULTS.units[groupKey].manageFilter, unitOptions.manageFilter)
+	unitOptions.manageSort = migration_or_default(ns.MANAGE_SORT_ORDER, unitOptions.manageSort, nil, ns.DEFAULTS.units[groupKey].manageSort, unitOptions.manageSort)
 
 	absorb_legacy_flat_into_aura(unitOptions)
 
@@ -180,6 +182,25 @@ local function sanitize_unit_options(groupKey, unitOptions, migrations)
 			unitOptions.aura[auraType] = {}
 		end
 		sanitize_aura_options(groupKey, auraType, unitOptions.aura[auraType], rawUnitOptions, migrations)
+	end
+
+	if type(unitOptions.knownAuras) ~= ns.LUA_TYPE.TABLE then
+		unitOptions.knownAuras = {}
+	end
+	for spellIdKey, entry in pairs(unitOptions.knownAuras) do
+		if type(entry) ~= ns.LUA_TYPE.TABLE
+			or type(entry.name) ~= ns.LUA_TYPE.STRING
+			or entry.name == ns.TEXT.EMPTY
+			or not ns.IsKnownValue(ns.AURA_TYPE_ORDER, entry.auraType) then
+			unitOptions.knownAuras[spellIdKey] = nil
+		else
+			entry.hidden = entry.hidden == true
+			-- Entries saved before "first/last seen" tracking existed won't
+			-- have these; backfill with "now" so sorting by them doesn't
+			-- error, rather than leaving every legacy entry sorted first.
+			entry.firstSeenAt = type(entry.firstSeenAt) == ns.LUA_TYPE.NUMBER and entry.firstSeenAt or time()
+			entry.lastSeenAt = type(entry.lastSeenAt) == ns.LUA_TYPE.NUMBER and entry.lastSeenAt or entry.firstSeenAt
+		end
 	end
 end
 

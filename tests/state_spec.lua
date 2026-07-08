@@ -226,6 +226,199 @@ return function(runner, ns)
 		assert.equal(ns.CopyUnitGroupOptions("unknown", ns.UNIT_GROUP.PLAYER), false)
 	end)
 
+	runner:test("CopyUnitGroupOptions leaves the target's known auras untouched", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 111, "Player Only Buff")
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PET, ns.AURA_TYPE.BUFF, 222, "Pet Only Buff")
+
+		assert.equal(ns.CopyUnitGroupOptions(ns.UNIT_GROUP.PLAYER, ns.UNIT_GROUP.PET), true)
+
+		assert.equal(ns.IsAuraHidden(ns.UNIT_GROUP.PET, 111), false)
+		assert.equal(#ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PET), 1)
+		assert.equal(ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PET)[1].name, "Pet Only Buff")
+	end)
+
+	runner:test("RegisterDiscoveredAura creates once and IsAuraHidden/SetAuraHidden round-trip", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		assert.equal(ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 12345, "Well Fed"), true)
+		assert.equal(ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 12345, "Well Fed"), false)
+		assert.equal(ns.IsAuraHidden(ns.UNIT_GROUP.PLAYER, 12345), false)
+
+		assert.equal(ns.SetAuraHidden(ns.UNIT_GROUP.PLAYER, 12345, true), true)
+		assert.equal(ns.IsAuraHidden(ns.UNIT_GROUP.PLAYER, 12345), true)
+		assert.equal(ns.SetAuraHidden(ns.UNIT_GROUP.PLAYER, 12345, false), true)
+		assert.equal(ns.IsAuraHidden(ns.UNIT_GROUP.PLAYER, 12345), false)
+
+		assert.equal(ns.SetAuraHidden(ns.UNIT_GROUP.PLAYER, 99999, true), false)
+		assert.equal(ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, "unknown", 1, "Bad"), false)
+	end)
+
+	runner:test("ForgetAura removes an entry and allows fresh rediscovery", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.DEBUFF, 555, "Curse of Weakness")
+		ns.SetAuraHidden(ns.UNIT_GROUP.PLAYER, 555, true)
+
+		assert.equal(ns.ForgetAura(ns.UNIT_GROUP.PLAYER, 555), true)
+		assert.equal(ns.ForgetAura(ns.UNIT_GROUP.PLAYER, 555), false)
+		assert.equal(ns.IsAuraHidden(ns.UNIT_GROUP.PLAYER, 555), false)
+
+		assert.equal(ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.DEBUFF, 555, "Curse of Weakness"), true)
+		assert.equal(ns.IsAuraHidden(ns.UNIT_GROUP.PLAYER, 555), false)
+	end)
+
+	runner:test("GetSortedKnownAuraEntries merges buffs and debuffs alphabetically", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 3, "Charlie Buff")
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.DEBUFF, 1, "alpha debuff")
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 2, "Bravo Buff")
+
+		local entries = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER)
+		assert.equal(#entries, 3)
+		assert.same({ entries[1].name, entries[2].name, entries[3].name }, { "alpha debuff", "Bravo Buff", "Charlie Buff" })
+		assert.equal(entries[1].auraType, ns.AURA_TYPE.DEBUFF)
+	end)
+
+	runner:test("GetSortedKnownAuraEntries filters by aura type", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 1, "A Buff")
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.DEBUFF, 2, "A Debuff")
+
+		local both = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER, ns.MANAGE_FILTER.BOTH)
+		assert.equal(#both, 2)
+
+		local buffsOnly = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER, ns.MANAGE_FILTER.BUFF)
+		assert.equal(#buffsOnly, 1)
+		assert.equal(buffsOnly[1].name, "A Buff")
+
+		local debuffsOnly = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER, ns.MANAGE_FILTER.DEBUFF)
+		assert.equal(#debuffsOnly, 1)
+		assert.equal(debuffsOnly[1].name, "A Debuff")
+	end)
+
+	runner:test("GetSortedKnownAuraEntries sorts by first/last seen in both directions", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		rawset(_G, "time", function()
+			return 1000
+		end)
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 1, "First")
+
+		rawset(_G, "time", function()
+			return 2000
+		end)
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 2, "Second")
+
+		-- Re-seeing "First" later updates only its lastSeenAt, not firstSeenAt.
+		rawset(_G, "time", function()
+			return 3000
+		end)
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 1, "First")
+
+		local firstSeenAsc = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER, nil, ns.MANAGE_SORT.FIRST_SEEN_ASC)
+		assert.same({ firstSeenAsc[1].name, firstSeenAsc[2].name }, { "First", "Second" })
+
+		local firstSeenDesc = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER, nil, ns.MANAGE_SORT.FIRST_SEEN_DESC)
+		assert.same({ firstSeenDesc[1].name, firstSeenDesc[2].name }, { "Second", "First" })
+
+		-- "First" was re-seen most recently (t=3000), so it sorts last for
+		-- "oldest first" and first for "newest first" by last-seen time.
+		local lastSeenAsc = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER, nil, ns.MANAGE_SORT.LAST_SEEN_ASC)
+		assert.same({ lastSeenAsc[1].name, lastSeenAsc[2].name }, { "Second", "First" })
+
+		local lastSeenDesc = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER, nil, ns.MANAGE_SORT.LAST_SEEN_DESC)
+		assert.same({ lastSeenDesc[1].name, lastSeenDesc[2].name }, { "First", "Second" })
+
+		rawset(_G, "time", os.time)
+	end)
+
+	runner:test("per-group manage filter and sort validate allowed values", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		assert.equal(ns.GetUnitGroupManageFilter(ns.UNIT_GROUP.PLAYER), ns.MANAGE_FILTER.BOTH)
+		assert.equal(ns.SetUnitGroupManageFilter(ns.UNIT_GROUP.PLAYER, ns.MANAGE_FILTER.BUFF), true)
+		assert.equal(ns.GetUnitGroupManageFilter(ns.UNIT_GROUP.PLAYER), ns.MANAGE_FILTER.BUFF)
+		assert.equal(ns.SetUnitGroupManageFilter(ns.UNIT_GROUP.PLAYER, "invalid"), false)
+		assert.equal(ns.GetUnitGroupManageFilter(ns.UNIT_GROUP.PLAYER), ns.MANAGE_FILTER.BUFF)
+
+		assert.equal(ns.GetUnitGroupManageSort(ns.UNIT_GROUP.PLAYER), ns.MANAGE_SORT.ALPHA_ASC)
+		assert.equal(ns.SetUnitGroupManageSort(ns.UNIT_GROUP.PLAYER, ns.MANAGE_SORT.LAST_SEEN_DESC), true)
+		assert.equal(ns.GetUnitGroupManageSort(ns.UNIT_GROUP.PLAYER), ns.MANAGE_SORT.LAST_SEEN_DESC)
+		assert.equal(ns.SetUnitGroupManageSort(ns.UNIT_GROUP.PLAYER, "invalid"), false)
+	end)
+
+	runner:test("ResetUnitGroupOptions clears known auras", function()
+		_G.SimpleBuffsDB = nil
+		ns.InitDB()
+
+		ns.RegisterDiscoveredAura(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, 1, "Aura")
+		assert.equal(#ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER), 1)
+
+		assert.equal(ns.ResetUnitGroupOptions(ns.UNIT_GROUP.PLAYER), true)
+		assert.equal(#ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER), 0)
+	end)
+
+	runner:test("InitDB sanitizes malformed known aura entries", function()
+		_G.SimpleBuffsDB = {
+			units = {
+				player = {
+					knownAuras = {
+						["1"] = { name = "Valid Aura", auraType = ns.AURA_TYPE.BUFF, hidden = true },
+						["2"] = { name = "", auraType = ns.AURA_TYPE.BUFF },
+						["3"] = { auraType = ns.AURA_TYPE.BUFF },
+						["4"] = { name = "Bad Type", auraType = "unknown" },
+						["5"] = "not-a-table",
+					},
+				},
+			},
+		}
+
+		ns.InitDB()
+
+		local entries = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER)
+		assert.equal(#entries, 1)
+		assert.equal(entries[1].name, "Valid Aura")
+		assert.equal(entries[1].hidden, true)
+	end)
+
+	runner:test("InitDB backfills first/last seen on legacy known aura entries and sanitizes manage filter/sort", function()
+		_G.SimpleBuffsDB = {
+			units = {
+				player = {
+					manageFilter = "invalid",
+					manageSort = "invalid",
+					knownAuras = {
+						["1"] = { name = "Legacy Aura", auraType = ns.AURA_TYPE.BUFF, hidden = false },
+					},
+				},
+			},
+		}
+
+		rawset(_G, "time", function()
+			return 5000
+		end)
+		ns.InitDB()
+		rawset(_G, "time", os.time)
+
+		assert.equal(ns.GetUnitGroupManageFilter(ns.UNIT_GROUP.PLAYER), ns.MANAGE_FILTER.BOTH)
+		assert.equal(ns.GetUnitGroupManageSort(ns.UNIT_GROUP.PLAYER), ns.MANAGE_SORT.ALPHA_ASC)
+
+		local entries = ns.GetSortedKnownAuraEntries(ns.UNIT_GROUP.PLAYER)
+		assert.equal(entries[1].firstSeenAt, 5000)
+		assert.equal(entries[1].lastSeenAt, 5000)
+	end)
+
 	runner:test("standalone dragging requires unlocked state and Shift", function()
 		_G.SimpleBuffsDB = nil
 		ns.InitDB()

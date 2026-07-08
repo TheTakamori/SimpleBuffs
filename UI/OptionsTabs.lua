@@ -57,10 +57,10 @@ end
 
 local function update_aura_tab_button(tabButton)
 	local selected = tabButton.panelState.selectedAuraTabByGroup and tabButton.panelState.selectedAuraTabByGroup[tabButton.groupKey]
-	if not ns.IsKnownValue(ns.AURA_TYPE_ORDER, selected) then
-		selected = ns.AURA_TYPE.BUFF
+	if not ns.IsKnownValue(ns.GROUP_SUBTAB_ORDER, selected) then
+		selected = ns.GROUP_SUBTAB.BUFF
 	end
-	local isSelected = selected == tabButton.auraType
+	local isSelected = selected == tabButton.subTab
 	if isSelected then
 		tabButton.background:SetColorTexture(
 			ns.OPTIONS_LAYOUT.TAB_SELECTED_R,
@@ -89,12 +89,12 @@ function ns.CreateAuraTypeTabButtons(parent, groupKey, panelState, y)
 	local x = ns.OPTIONS_LAYOUT.SUBTITLE_X
 	local w = ns.OPTIONS_LAYOUT.TAB_AURA_BUTTON_WIDTH
 	local gap = ns.OPTIONS_LAYOUT.TAB_AURA_GAP_X
-	for index = 1, #ns.AURA_TYPE_ORDER do
-		local auraType = ns.AURA_TYPE_ORDER[index]
+	for index = 1, #ns.GROUP_SUBTAB_ORDER do
+		local subTab = ns.GROUP_SUBTAB_ORDER[index]
 		local tabButton = CreateFrame(ns.UI.BUTTON, nil, parent)
 		tabButton.groupKey = groupKey
 		tabButton.panelState = panelState
-		tabButton.auraType = auraType
+		tabButton.subTab = subTab
 		tabButton:SetSize(w, ns.OPTIONS_LAYOUT.TAB_AURA_BUTTON_HEIGHT)
 		tabButton:SetPoint(ns.UI.ANCHOR_TOPLEFT, parent, ns.UI.ANCHOR_TOPLEFT, x + (index - ns.NUMBER.ONE) * (w + gap), y)
 
@@ -102,10 +102,10 @@ function ns.CreateAuraTypeTabButtons(parent, groupKey, panelState, y)
 		tabButton.background:SetAllPoints()
 		tabButton.text = tabButton:CreateFontString(nil, ns.UI.OVERLAY, ns.UI.GAME_FONT_NORMAL_SMALL)
 		tabButton.text:SetPoint(ns.UI.ANCHOR_CENTER, tabButton, ns.UI.ANCHOR_CENTER, ns.NUMBER.ZERO, ns.NUMBER.ZERO)
-		tabButton.text:SetText(ns.AURA_LABEL[auraType])
+		tabButton.text:SetText(ns.GROUP_SUBTAB_LABEL[subTab])
 
 		tabButton:SetScript(ns.UI.ON_CLICK, function()
-			panelState.selectedAuraTabByGroup[groupKey] = auraType
+			panelState.selectedAuraTabByGroup[groupKey] = subTab
 			parent:RefreshFromDB()
 		end)
 		tabButton:SetScript(ns.UI.ON_ENTER, function(self)

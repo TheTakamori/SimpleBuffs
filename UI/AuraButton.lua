@@ -14,6 +14,23 @@ local function set_count_text(button, entry, appearance)
 	button.count:SetText(text)
 end
 
+-- Reads aura.duration/.expirationTime and compares them; both can be Secret
+-- Values when durationObject wasn't available (e.g. an aura Blizzard flags
+-- as secret from its very first application). Comparing a secret value
+-- (>, ==, ~=) throws even though reading it succeeds, so this whole
+-- decide-and-act step must run inside a single pcall, not just guard the
+-- reads - an uncaught throw here would abort the rest of ApplyAuraButton,
+-- leaving the icon set but the name/bar/countdown never applied.
+local function apply_fallback_cooldown(cooldown, aura)
+	local duration = aura.duration
+	local expirationTime = aura.expirationTime
+	if duration and expirationTime and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION then
+		cooldown:SetCooldown(expirationTime - duration, duration, aura.timeMod or ns.AURA_BUTTON.FALLBACK_MOD_RATE)
+	else
+		cooldown:Clear()
+	end
+end
+
 local function set_cooldown(button, entry, appearance)
 	local style = appearance.style or ns.AURA_STYLE.ICON
 	button.cooldown:SetHideCountdownNumbers(not appearance.showCountdown)
@@ -31,17 +48,14 @@ local function set_cooldown(button, entry, appearance)
 		return
 	end
 
-	-- Non-Midnight fallback for local testing on older clients.
+	-- Non-Midnight fallback for local testing on older clients, and a safety
+	-- net for the rare Midnight case where durationObject isn't available.
 	local aura = entry.aura
 	if not aura then
 		button.cooldown:Clear()
 		return
 	end
-	local duration = aura.duration
-	local expirationTime = aura.expirationTime
-	if duration and expirationTime and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION then
-		button.cooldown:SetCooldown(expirationTime - duration, duration, aura.timeMod or ns.AURA_BUTTON.FALLBACK_MOD_RATE)
-	else
+	if not pcall(apply_fallback_cooldown, button.cooldown, aura) then
 		button.cooldown:Clear()
 	end
 end
@@ -285,6 +299,20 @@ local function apply_icon_layout(button, size)
 	button.count:SetPoint(ns.UI.ANCHOR_BOTTOMRIGHT, button, ns.UI.ANCHOR_BOTTOMRIGHT, ns.AURA_BUTTON.COUNT_OFFSET_X, ns.AURA_BUTTON.COUNT_OFFSET_Y)
 end
 
+-- Same Secret Value risk as apply_fallback_cooldown above: run the whole
+-- decide-and-act step in one pcall rather than guarding individual reads.
+local function apply_fallback_bar_timer(statusBar, aura)
+	local duration = aura and aura.duration
+	local expirationTime = aura and aura.expirationTime
+	if duration and expirationTime and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION then
+		statusBar:SetMinMaxValues(ns.NUMBER.ZERO, duration)
+		statusBar:SetValue(math.max(ns.NUMBER.ZERO, expirationTime - (GetTime and GetTime() or ns.NUMBER.ZERO)))
+	else
+		statusBar:SetMinMaxValues(ns.NUMBER.ZERO, ns.NUMBER.ONE)
+		statusBar:SetValue(ns.NUMBER.ONE)
+	end
+end
+
 local function set_bar_timer(button, entry)
 	local statusBar = button.statusBar
 	if not statusBar then
@@ -297,17 +325,14 @@ local function set_bar_timer(button, entry)
 		return
 	end
 
-	-- Non-Midnight fallback for local testing on older clients.
-	local aura = entry.aura
-	local duration = aura and aura.duration
-	local expirationTime = aura and aura.expirationTime
-	if statusBar.SetMinMaxValues and statusBar.SetValue then
-		statusBar:SetMinMaxValues(ns.NUMBER.ZERO, duration and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION and duration or ns.NUMBER.ONE)
-		if duration and expirationTime and duration > ns.AURA_BUTTON.FALLBACK_MIN_DURATION then
-			statusBar:SetValue(math.max(ns.NUMBER.ZERO, expirationTime - (GetTime and GetTime() or ns.NUMBER.ZERO)))
-		else
-			statusBar:SetValue(ns.NUMBER.ONE)
-		end
+	-- Non-Midnight fallback for local testing on older clients, and a safety
+	-- net for the rare Midnight case where durationObject isn't available.
+	if not statusBar.SetMinMaxValues or not statusBar.SetValue then
+		return
+	end
+	if not pcall(apply_fallback_bar_timer, statusBar, entry.aura) then
+		statusBar:SetMinMaxValues(ns.NUMBER.ZERO, ns.NUMBER.ONE)
+		statusBar:SetValue(ns.NUMBER.ONE)
 	end
 end
 
