@@ -16,15 +16,21 @@ local function reverse_rows(rows)
 end
 
 -- aura.duration can be a Secret Value in restricted content (combat, instances,
--- PvP, M+); read it defensively and bail out of the whole comparison rather
--- than risk table.sort erroring midway through and leaving rows half-swapped.
+-- PvP, M+). Reading a secret field never throws and type() still reports
+-- "number" for it - only comparing/ordering it throws - so the only reliable
+-- test is issecretvalue(). Bail out of the whole comparison rather than risk
+-- table.sort erroring midway through and leaving rows half-swapped.
+local function is_secret(value)
+	return type(issecretvalue) == "function" and issecretvalue(value) == true
+end
+
 local function collect_durations(rows)
 	local durations = {}
 	for index = 1, #rows do
 		local ok, duration = pcall(function()
 			return rows[index].aura and rows[index].aura.duration
 		end)
-		if not ok or type(duration) ~= ns.LUA_TYPE.NUMBER then
+		if not ok or type(duration) ~= ns.LUA_TYPE.NUMBER or is_secret(duration) then
 			return nil
 		end
 		durations[index] = duration
@@ -41,12 +47,15 @@ local function sort_by_max_duration(rows, ascending)
 	for index = 1, #rows do
 		order[index] = index
 	end
-	table.sort(order, function(left, right)
+	local ok = pcall(table.sort, order, function(left, right)
 		if ascending then
 			return durations[left] < durations[right]
 		end
 		return durations[left] > durations[right]
 	end)
+	if not ok then
+		return
+	end
 	local sorted = {}
 	for index = 1, #order do
 		sorted[index] = rows[order[index]]

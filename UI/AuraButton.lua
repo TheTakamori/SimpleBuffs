@@ -1,6 +1,10 @@
 SimpleBuffs = SimpleBuffs or {}
 local ns = SimpleBuffs
 
+-- entry.applicationDisplayCount comes from C_UnitAuras.GetAuraApplicationDisplayCount
+-- (Scanner.lua), a display-ready API (note the min/max clamp params) from the
+-- same family as GetAuraDuration/durationObject - unlike the raw .applications
+-- field, it's never a Secret Value, so SetText below needs no pcall guard.
 local function set_count_text(button, entry, appearance)
 	if not button.count then
 		return
@@ -185,22 +189,35 @@ local function apply_clickthrough(button)
 	end
 end
 
+-- aura.icon can be a Secret Value (same risk as aura.duration/.name below).
+-- type() can't detect secrecy - it reports the plain Lua type either way -
+-- so the read-decide-SetTexture step has to run as a single pcall unit
+-- rather than pcall-guarding just the read.
+local function apply_icon_texture(button, aura)
+	local icon = aura.icon
+	local iconType = type(icon)
+	if iconType == ns.LUA_TYPE.NUMBER or iconType == ns.LUA_TYPE.STRING then
+		button.icon:SetTexture(icon)
+	end
+end
+
 local function apply_icon(button, aura)
 	button.icon:SetTexture(ns.AURA_BUTTON.QUESTION_MARK_ICON)
 	if not aura then
 		return
 	end
+	pcall(apply_icon_texture, button, aura)
+end
 
-	local ok, icon = pcall(function()
-		return aura.icon
-	end)
-	if not ok then
-		return
-	end
-
-	local iconType = type(icon)
-	if iconType == ns.LUA_TYPE.NUMBER or iconType == ns.LUA_TYPE.STRING then
-		button.icon:SetTexture(icon)
+-- aura.name can be a Secret Value too; SetText stringifies its argument,
+-- which throws on a secret string even though type(name) == "string" still
+-- holds. Same single-pcall-unit fix as apply_icon above.
+local function apply_name_text(fontString, aura)
+	local name = aura.name
+	if type(name) == ns.LUA_TYPE.STRING then
+		fontString:SetText(name)
+	else
+		fontString:SetText(ns.TEXT.AURA_TOOLTIP_FALLBACK)
 	end
 end
 
@@ -208,17 +225,9 @@ local function apply_name(fontString, aura)
 	if not fontString then
 		return
 	end
-
-	local text = ns.TEXT.AURA_TOOLTIP_FALLBACK
-	if aura then
-		local ok, name = pcall(function()
-			return aura.name
-		end)
-		if ok and type(name) == ns.LUA_TYPE.STRING then
-			text = name
-		end
+	if not aura or not pcall(apply_name_text, fontString, aura) then
+		fontString:SetText(ns.TEXT.AURA_TOOLTIP_FALLBACK)
 	end
-	fontString:SetText(text)
 end
 
 local function ensure_bar_widgets(button)

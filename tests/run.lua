@@ -67,18 +67,32 @@ local function make_test_frame(name)
 		CreateTexture = function()
 			return {
 				SetAllPoints = function() end,
+				ClearAllPoints = function() end,
+				SetPoint = function() end,
 				SetTexCoord = function() end,
 				SetTexture = function() end,
+				SetColorTexture = function() end,
+				SetSize = function() end,
+				SetShown = function(self, shown)
+					self.shown = shown == true
+				end,
 			}
 		end,
 		CreateFontString = function()
 			return {
 				SetPoint = function() end,
+				ClearAllPoints = function() end,
 				SetText = function() end,
+				SetJustifyH = function() end,
+				SetWidth = function() end,
+				Show = function() end,
 			}
 		end,
 		SetSize = function(self, width, height)
 			self.width = width
+			self.height = height
+		end,
+		SetHeight = function(self, height)
 			self.height = height
 		end,
 		GetWidth = function(self)
@@ -92,6 +106,18 @@ local function make_test_frame(name)
 		SetHideCountdownNumbers = function() end,
 		SetDrawSwipe = function() end,
 		SetDrawEdge = function() end,
+		SetCooldown = function(self, start, duration, modRate)
+			self.cooldownStart = start
+			self.cooldownDuration = duration
+			self.cooldownModRate = modRate
+		end,
+		Clear = function(self)
+			self.cooldownStart = nil
+			self.cooldownDuration = nil
+		end,
+		SetStatusBarTexture = function(self, texture)
+			self.statusBarTexture = texture
+		end,
 		RegisterForDrag = function() end,
 		SetScript = function(self, event, handler)
 			self.scripts[event] = handler
