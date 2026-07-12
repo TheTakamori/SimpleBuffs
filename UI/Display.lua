@@ -352,6 +352,7 @@ function ns.LayoutStandaloneContainers()
 			if container.pinnedEdge ~= desiredEdge then
 				pin_container_edge(container, desiredEdge)
 				container.pinnedEdge = desiredEdge
+				ns.SaveStandalonePosition(container.containerKey, container)
 			end
 		elseif container.pinnedEdge then
 			container.pinnedEdge = nil

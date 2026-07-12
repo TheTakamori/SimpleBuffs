@@ -5,7 +5,7 @@ configurable displays. It is built for World of Warcraft Retail
 `12.0.5 (Midnight)` and uses Blizzard cooldown widgets for countdown text so
 the UI can display aura timers without custom combat-state calculations.
 
-Current version: `1.6.1`.
+Current version: `1.6.2`.
 
 ## Features
 

@@ -204,6 +204,105 @@ return function(runner, ns)
 		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
 	end)
 
+	runner:test("Bar Anchor Bottom (Grow Down) position survives a relogin with a different aura count", function()
+		reset_db()
+		ns.SetUnitGroupStyle(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.AURA_STYLE.BAR)
+		ns.SetUnitGroupBarAnchor(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.BAR_ANCHOR.BOTTOM)
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+
+		-- "Login #1": never dragged, so this pins from the CENTER default.
+		ns.RefreshAndUpdateUnit("player")
+		ns.LayoutStandaloneContainers()
+
+		local key = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF)
+		local topAfterFirstLogin = player_container(ns.AURA_TYPE.BUFF):GetTop()
+		assert.equal(ns.DB().standalone[key].point, ns.UI.ANCHOR_TOPLEFT)
+
+		-- "Login #2": DB persists, but the runtime (and thus pinnedEdge and
+		-- the container object) is torn down, and this session happens to
+		-- have a different number of active buffs.
+		_G.SimpleBuffs.Runtime = nil
+		ns.RuntimeEnsure()
+		ns.AdvanceSimulatePhase()
+		ns.AdvanceSimulatePhase()
+		ns.RefreshAndUpdateUnit("player")
+		ns.LayoutStandaloneContainers()
+
+		assert.equal(player_container(ns.AURA_TYPE.BUFF):GetTop(), topAfterFirstLogin)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+	end)
+
+	runner:test("Bar Anchor Top (Grow Up) position survives a relogin with a different aura count", function()
+		reset_db()
+		ns.SetUnitGroupStyle(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.AURA_STYLE.BAR)
+		ns.SetUnitGroupBarAnchor(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.BAR_ANCHOR.TOP)
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+
+		ns.RefreshAndUpdateUnit("player")
+		ns.LayoutStandaloneContainers()
+
+		local key = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF)
+		local bottomAfterFirstLogin = player_container(ns.AURA_TYPE.BUFF):GetBottom()
+		assert.equal(ns.DB().standalone[key].point, ns.UI.ANCHOR_BOTTOMLEFT)
+
+		_G.SimpleBuffs.Runtime = nil
+		ns.RuntimeEnsure()
+		ns.AdvanceSimulatePhase()
+		ns.AdvanceSimulatePhase()
+		ns.RefreshAndUpdateUnit("player")
+		ns.LayoutStandaloneContainers()
+
+		assert.equal(player_container(ns.AURA_TYPE.BUFF):GetBottom(), bottomAfterFirstLogin)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+	end)
+
+	runner:test("switching Bar Anchor persists the new corner, not just the in-memory point", function()
+		reset_db()
+		ns.SetUnitGroupStyle(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.AURA_STYLE.BAR)
+		ns.SetUnitGroupBarAnchor(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.BAR_ANCHOR.TOP)
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+
+		ns.RefreshAndUpdateUnit("player")
+		ns.LayoutStandaloneContainers()
+
+		ns.SetUnitGroupBarAnchor(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.BAR_ANCHOR.BOTTOM)
+		ns.RefreshAndUpdateUnit("player")
+		ns.LayoutStandaloneContainers()
+
+		local key = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF)
+		assert.equal(ns.DB().standalone[key].point, ns.UI.ANCHOR_TOPLEFT)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+	end)
+
+	runner:test("a manually dragged position is not disturbed by the pin-save on the next layout pass", function()
+		reset_db()
+		ns.SetUnitGroupStyle(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.AURA_STYLE.BAR)
+		ns.SetUnitGroupBarAnchor(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.BAR_ANCHOR.BOTTOM)
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, true)
+
+		ns.RefreshAndUpdateUnit("player")
+		ns.LayoutStandaloneContainers()
+
+		local key = ns.GetStandaloneContainerInstanceKey(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF)
+		local container = player_container(ns.AURA_TYPE.BUFF)
+		ns.SaveStandalonePosition(key, container)
+		local draggedX, draggedY = ns.DB().standalone[key].x, ns.DB().standalone[key].y
+
+		-- Re-running layout without adding/removing bars should be a no-op
+		-- for the pinned edge (already at desiredEdge), so it must not
+		-- re-save and must not move the dragged spot.
+		ns.RefreshAndUpdateUnit("player")
+		ns.LayoutStandaloneContainers()
+
+		assert.equal(ns.DB().standalone[key].x, draggedX)
+		assert.equal(ns.DB().standalone[key].y, draggedY)
+
+		ns.SetSimulateEnabled(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, false)
+	end)
+
 	runner:test("switching Style back to Icon un-pins and restores the saved point", function()
 		reset_db()
 		ns.SetUnitGroupStyle(ns.UNIT_GROUP.PLAYER, ns.AURA_TYPE.BUFF, ns.AURA_STYLE.BAR)
