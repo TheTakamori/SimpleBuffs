@@ -151,6 +151,12 @@ end
 -- different point moves the frame to an unrelated screen position - this
 -- was the cause of a prior regression where standalone displays ended up
 -- stuck off-screen.
+local ROUND_HALF = 0.5
+
+local function round(value)
+	return math.floor(value + ROUND_HALF)
+end
+
 local function pin_container_edge(frame, edge)
 	local left = frame:GetLeft()
 	local edgeY = edge == ns.UI.ANCHOR_BOTTOM and frame:GetBottom() or frame:GetTop()
@@ -161,7 +167,7 @@ local function pin_container_edge(frame, edge)
 	local uiLeft = UIParent:GetLeft() or ns.NUMBER.ZERO
 	local uiEdgeY = (edge == ns.UI.ANCHOR_BOTTOM and UIParent:GetBottom() or UIParent:GetTop()) or ns.NUMBER.ZERO
 	frame:ClearAllPoints()
-	frame:SetPoint(point, UIParent, point, left - uiLeft, edgeY - uiEdgeY)
+	frame:SetPoint(point, UIParent, point, round(left - uiLeft), round(edgeY - uiEdgeY))
 end
 
 local function ensure_display(unit, mode, auraType)

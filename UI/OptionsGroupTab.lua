@@ -307,14 +307,24 @@ function ns.CreateOptionsGroupTab(parent, groupKey, panelState)
 	-- settingsSection, sharing Simulate's row since the two are unrelated
 	-- but both compact single checkboxes.
 	if groupKey == ns.UNIT_GROUP.PLAYER then
-		register_tab_child(tab, ns.CreateOptionsCheck(tab, ns.TEXT.OPTIONS_HIDE_BLIZZARD_PLAYER_BUFFS, ns.OPTIONS_LAYOUT.TAB_SIMULATE_Y, function()
+		local hideBlizzardCheck = ns.CreateOptionsCheck(tab, ns.TEXT.OPTIONS_HIDE_BLIZZARD_PLAYER_BUFFS, ns.OPTIONS_LAYOUT.TAB_SIMULATE_Y, function()
 			return ns.IsBlizzardPlayerBuffsHidden()
 		end, function(value)
 			ns.SetBlizzardPlayerBuffsHidden(value)
 			if ns.RefreshBlizzardPlayerBuffsVisibility then
 				ns.RefreshBlizzardPlayerBuffsVisibility()
 			end
-		end, ns.OPTIONS_LAYOUT.TAB_CHECK_SECOND_COLUMN_X, false, ns.TEXT.OPTIONS_TOOLTIP_HIDE_BLIZZARD_PLAYER_BUFFS))
+		end, ns.OPTIONS_LAYOUT.TAB_CHECK_SECOND_COLUMN_X, false, ns.TEXT.OPTIONS_TOOLTIP_HIDE_BLIZZARD_PLAYER_BUFFS)
+		-- Shares Simulate's row, and Simulate (inside settingsSection) is
+		-- already hidden on the Manage Auras sub-tab - this checkbox lives
+		-- directly on the outer tab instead (see comment above), so it needs
+		-- its own showWhen wiring to match instead of inheriting settingsSection's.
+		local refreshHideBlizzardCheck = hideBlizzardCheck.RefreshFromDB
+		hideBlizzardCheck.RefreshFromDB = function(self)
+			refreshHideBlizzardCheck(self)
+			self:SetShown(resolveSubTab() ~= ns.GROUP_SUBTAB.MANAGE)
+		end
+		register_tab_child(tab, hideBlizzardCheck)
 	end
 
 	create_copy_from_row(tab, groupKey, panelState, ns.OPTIONS_LAYOUT.TAB_COPY_FROM_Y)

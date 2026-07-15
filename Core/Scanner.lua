@@ -213,9 +213,24 @@ function ns.ScanUnitAuraType(unit, auraType)
 	local filter = build_filter(unit, auraType)
 	local maxCount = ns.GetUnitMaxAuras(unit, auraType)
 	local sortRule = get_sort_rule(unit, auraType)
-	return scan_with_instance_ids(unit, auraType, filter, maxCount, sortRule)
+	local rows = scan_with_instance_ids(unit, auraType, filter, maxCount, sortRule)
 		or scan_with_unit_auras(unit, auraType, filter, maxCount, sortRule)
 		or scan_with_index(unit, auraType, filter, maxCount)
+
+	-- Weapon enchants (oils, stones, Windfury Weapon, etc.) never come back
+	-- from the UnitAura scans above - see Core/WeaponEnchant.lua - so they're
+	-- appended here, capped to the same Max Auras budget as everything else.
+	if auraType == ns.AURA_TYPE.BUFF and unit == ns.UNIT_TOKEN.PLAYER and ns.ScanWeaponEnchantRows then
+		local weaponRows = ns.ScanWeaponEnchantRows()
+		for index = 1, #weaponRows do
+			if #rows >= maxCount then
+				break
+			end
+			rows[#rows + 1] = weaponRows[index]
+		end
+	end
+
+	return rows
 end
 
 function ns.ScanUnitAuras(unit)

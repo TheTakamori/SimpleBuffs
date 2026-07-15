@@ -34,6 +34,18 @@ _G.Enum = {
 	},
 }
 
+_G.INVSLOT_MAINHAND = 16
+_G.INVSLOT_OFFHAND = 17
+_G.ENCHANTED_TOOLTIP_LINE = "Enchanted: %s"
+-- No weapon enchant by default; individual tests override this to simulate
+-- one being applied.
+_G.GetWeaponEnchantInfo = function()
+	return false, 0, 0, nil, false, 0, 0, nil
+end
+_G.GetInventoryItemTexture = function()
+	return nil
+end
+
 assert(loadfile(root .. "/Core/Constants.lua"))()
 assert(loadfile(root .. "/Core/WoWConstants.lua"))()
 assert(loadfile(root .. "/Core/UIConstants.lua"))()
@@ -48,6 +60,7 @@ assert(loadfile(root .. "/Core/PositionState.lua"))()
 assert(loadfile(root .. "/UI/DisplayAnchors.lua"))()
 assert(loadfile(root .. "/UI/StandaloneDrag.lua"))()
 assert(loadfile(root .. "/Core/Units.lua"))()
+assert(loadfile(root .. "/Core/WeaponEnchant.lua"))()
 assert(loadfile(root .. "/Core/Scanner.lua"))()
 assert(loadfile(root .. "/Core/Model.lua"))()
 assert(loadfile(root .. "/UI/OptionsRefresh.lua"))()
@@ -259,6 +272,7 @@ require("units_spec")(runner, SimpleBuffs)
 require("state_spec")(runner, SimpleBuffs)
 require("position_state_spec")(runner, SimpleBuffs)
 require("scanner_spec")(runner, SimpleBuffs)
+require("weapon_enchant_spec")(runner, SimpleBuffs)
 require("model_spec")(runner, SimpleBuffs)
 require("options_spec")(runner, SimpleBuffs)
 require("aura_button_spec")(runner, SimpleBuffs)

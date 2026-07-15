@@ -5,7 +5,7 @@ configurable displays. It is built for World of Warcraft Retail
 `12.0.5 (Midnight)` and uses Blizzard cooldown widgets for countdown text so
 the UI can display aura timers without custom combat-state calculations.
 
-Current version: `1.6.2`.
+Current version: `1.6.3`.
 
 ## Features
 
@@ -46,10 +46,19 @@ Current version: `1.6.2`.
   Requires the unit to currently exist (e.g. a target/focus selected); it's a
   preview-only toggle that is never saved and always resets off on reload, so
   it can't accidentally leave fake auras showing later.
+- Shows temporary weapon enchants (oils, stones, Windfury Weapon, and similar)
+  in the Player unit's Buffs display, in both Icon and Bar Stack styles,
+  alongside real buffs. Blizzard only exposes these through a separate API
+  with no name field, so the display name is resolved from the weapon's own
+  tooltip text where possible and falls back to a generic "Main-Hand
+  Enchant"/"Off-Hand Enchant" label if that can't be read. Always shown when
+  Player Buffs are enabled, independent of Filter Mode; not listed in Manage
+  Auras and can't be individually hidden by name.
 - Adds a "Hide Blizzard Player Buffs" toggle on the Player unit tab that hides
   Blizzard's own default player buff bar (and weapon enchant buffs) near the
   minimap, so only Simple Buffs' own display shows. Saved per character and
-  applies immediately.
+  applies immediately. Only shown on the Buffs/Debuffs sub-tabs, not on
+  Manage Auras.
 - Includes hover explanations on option labels and controls.
 - Provides standalone grouped displays for users who prefer a custom placement.
   Buffs and Debuffs are separate standalone displays per unit group, so they
@@ -96,6 +105,11 @@ Current version: `1.6.2`.
   it can't be read safely, Max Duration sort silently falls back to leaving
   auras in their native scan order rather than reordering them. This is a
   Midnight platform limitation, not an addon bug.
+- Temporary weapon enchant duration can't be read from the game - only time
+  remaining - so the countdown/swipe always starts fresh from "full" the
+  moment it's first scanned rather than reflecting how much of the original
+  application has already elapsed. This matches Blizzard's own default UI
+  and is a platform limitation, not an addon bug.
 - Manage Auras hiding remembers each aura's spell ID the first time it can be
   read safely, then reuses that instead of re-reading it, so hiding keeps
   working through combat/instances/PvP/M+ even once Blizzard starts marking

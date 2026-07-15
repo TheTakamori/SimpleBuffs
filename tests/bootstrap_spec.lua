@@ -142,4 +142,21 @@ return function(runner, ns)
 		assert.equal(dirtyRefreshes, 1)
 		assert.equal(eventFrame.scripts[ns.UI.ON_UPDATE], nil)
 	end)
+
+	runner:test("UNIT_INVENTORY_CHANGED marks the player dirty but ignores other units", function()
+		local eventFrame = load_bootstrap()
+		local dirtyUnits = {}
+		local originalMark = ns.MarkUnitDirty
+		ns.MarkUnitDirty = function(unit)
+			dirtyUnits[#dirtyUnits + 1] = unit
+		end
+
+		local handler = eventFrame.scripts[ns.UI.ON_EVENT]
+		handler(eventFrame, ns.EVENT.UNIT_INVENTORY_CHANGED, "target")
+		handler(eventFrame, ns.EVENT.UNIT_INVENTORY_CHANGED, ns.UNIT_TOKEN.PLAYER)
+
+		ns.MarkUnitDirty = originalMark
+
+		assert.same(dirtyUnits, { ns.UNIT_TOKEN.PLAYER })
+	end)
 end

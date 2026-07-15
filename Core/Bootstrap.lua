@@ -9,6 +9,7 @@ frame:RegisterEvent(ns.EVENT.PLAYER_FOCUS_CHANGED)
 frame:RegisterEvent(ns.EVENT.PLAYER_TARGET_CHANGED)
 frame:RegisterEvent(ns.EVENT.UNIT_AURA)
 frame:RegisterEvent(ns.EVENT.UNIT_PET)
+frame:RegisterEvent(ns.EVENT.UNIT_INVENTORY_CHANGED)
 frame:RegisterEvent(ns.EVENT.GROUP_ROSTER_UPDATE)
 frame:RegisterEvent(ns.EVENT.RAID_ROSTER_UPDATE)
 frame:RegisterEvent(ns.EVENT.INSTANCE_ENCOUNTER_ENGAGE_UNIT)
@@ -122,6 +123,10 @@ frame:SetScript(ns.UI.ON_EVENT, function(_, event, arg1)
 	elseif event == ns.EVENT.UNIT_AURA then
 		if ns.IsTrackedUnit(arg1) then
 			request_dirty_refresh(arg1)
+		end
+	elseif event == ns.EVENT.UNIT_INVENTORY_CHANGED then
+		if arg1 == ns.UNIT_TOKEN.PLAYER then
+			request_dirty_refresh(ns.UNIT_TOKEN.PLAYER)
 		end
 	end
 end)

@@ -14,6 +14,17 @@ function ns.GetAttachedPosition(unit)
 	return ns.DB().attached[unit]
 end
 
+-- Rounded to whole pixels before storing: SetPoint offsets are read back
+-- through GetLeft/GetTop math (see pin_container_edge in UI/Display.lua)
+-- on every login, and fractional offsets survive that round-trip less
+-- reliably the lower a player's UI Scale is (each virtual unit covers more
+-- real screen pixels, so sub-pixel remainders become visible drift).
+local ROUND_HALF = 0.5
+
+local function round(value)
+	return value and math.floor(value + ROUND_HALF) or value
+end
+
 function ns.SaveStandalonePosition(unit, frame)
 	if not frame or not ns.DB().standalone[unit] then
 		return
@@ -25,8 +36,8 @@ function ns.SaveStandalonePosition(unit, frame)
 	local saved = ns.DB().standalone[unit]
 	saved.point = point
 	saved.relativePoint = relativePoint or point
-	saved.x = x or ns.NUMBER.ZERO
-	saved.y = y or ns.NUMBER.ZERO
+	saved.x = round(x) or ns.NUMBER.ZERO
+	saved.y = round(y) or ns.NUMBER.ZERO
 end
 
 function ns.GetMinimapButtonAngle()

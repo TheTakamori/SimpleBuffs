@@ -136,6 +136,13 @@ local function on_enter(self)
 			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_G,
 			ns.OPTIONS_LAYOUT.TOOLTIP_UNIT_COLOR_B
 		)
+	elseif ns.WEAPON_ENCHANT_SLOT_BY_INSTANCE_ID and ns.WEAPON_ENCHANT_SLOT_BY_INSTANCE_ID[entry.auraInstanceID] and GameTooltip.SetInventoryItem then
+		-- Weapon enchant rows use synthetic negative auraInstanceIDs (see
+		-- Core/WeaponEnchant.lua) that SetUnit*ByAuraInstanceID can't resolve
+		-- (it expects a real uint32 from C_UnitAuras and throws otherwise), so
+		-- show the enchanted weapon's own tooltip instead - matching what
+		-- Blizzard's default UI shows for these same buffs.
+		GameTooltip:SetInventoryItem(entry.unit, ns.WEAPON_ENCHANT_SLOT_BY_INSTANCE_ID[entry.auraInstanceID])
 	elseif entry.auraType == ns.AURA_TYPE.DEBUFF and GameTooltip.SetUnitDebuffByAuraInstanceID and entry.auraInstanceID then
 		GameTooltip:SetUnitDebuffByAuraInstanceID(entry.unit, entry.auraInstanceID, ns.AURA_FILTER[entry.auraType])
 	elseif entry.auraType == ns.AURA_TYPE.BUFF and GameTooltip.SetUnitBuffByAuraInstanceID and entry.auraInstanceID then
